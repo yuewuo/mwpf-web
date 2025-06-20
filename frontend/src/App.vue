@@ -1,32 +1,80 @@
 <script setup lang="ts"></script>
 
-<template></template>
+<template>
+  <div class="app-container">
+    <div class="portrait-region">
+      <div class="content-placeholder">
+        <h1>Portrait Content</h1>
+        <p>This is your content area with 1.618 aspect ratio</p>
+        <div class="code"></div>
+      </div>
+    </div>
+  </div>
+</template>
 
 <style scoped>
-header {
-  line-height: 1.5;
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
+/* Disable scrolling on body and html */
+:global(html),
+:global(body) {
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
 }
 
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
+.app-container {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+  padding: 1rem;
+}
 
-  .logo {
-    margin: 0 2rem 0 0;
-  }
+.portrait-region {
+  /* Golden ratio: height = width * 1.618 */
+  aspect-ratio: 1 / 1.618;
+  max-width: 100%;
+  max-height: 100%;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
 
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
+.content-placeholder {
+  position: relative;
+  text-align: center;
+  padding: 2rem;
+  color: #333;
+}
+
+.content-placeholder h1 {
+  font-size: 4vh; /* Relative to viewport height, which scales with the portrait region */
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.content-placeholder p {
+  font-size: 4vh; /* Relative to viewport height, which scales with the portrait region */
+  line-height: 1.6;
+  color: #666;
+}
+
+.code {
+  aspect-ratio: 1;
+  height: 50vh;
+  background-color: red;
+  position: fixed;
 }
 </style>
