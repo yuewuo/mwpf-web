@@ -4,9 +4,14 @@
   <div class="app-container">
     <div class="portrait-region">
       <div class="content-placeholder">
-        <h1>Portrait Content</h1>
-        <p>This is your content area with 1.618 aspect ratio</p>
-        <div class="code"></div>
+        <h1>MWPF Decoder</h1>
+        <p>
+          Minimum-Weight Parity Factor decoder is a generalization of Minimum-Weight Perfect
+          Matching (MWPM) decoder for general qLDPC codes
+        </p>
+        <div class="code">
+          <div style="width: 50%; height: 50%; background-color: blue"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -35,7 +40,7 @@
   align-items: center;
   justify-content: center;
   background-color: #f5f5f5;
-  padding: 1rem;
+  padding: 2vh;
 }
 
 .portrait-region {
@@ -44,8 +49,8 @@
   max-width: 100%;
   max-height: 100%;
   background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border-radius: 1vh;
+  box-shadow: 0 0.8vh 4vh rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -55,26 +60,26 @@
 .content-placeholder {
   position: relative;
   text-align: center;
-  padding: 2rem;
+  padding: 4vh;
   color: #333;
 }
 
 .content-placeholder h1 {
   font-size: 4vh; /* Relative to viewport height, which scales with the portrait region */
-  margin-bottom: 1rem;
+  margin-bottom: 2vh;
   font-weight: 600;
 }
 
 .content-placeholder p {
-  font-size: 4vh; /* Relative to viewport height, which scales with the portrait region */
+  font-size: 1.5vh; /* Relative to viewport height, which scales with the portrait region */
   line-height: 1.6;
   color: #666;
 }
 
 .code {
   aspect-ratio: 1;
-  height: 50vh;
+  width: 100%;
   background-color: red;
-  position: fixed;
+  margin: 0 auto;
 }
 </style>
