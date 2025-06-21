@@ -1,8 +1,35 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
+
+const height = ref(0) // the height of the portrait region
+const aspectRatio = 1.618
+const width = computed(() => {
+  return height.value / aspectRatio
+})
+
+function updateHeight () {
+  if (window.innerHeight > window.innerWidth * aspectRatio) {
+    height.value = window.innerWidth * aspectRatio * 0.98
+  } else {
+    height.value = window.innerHeight * 0.98
+  }
+}
+window.addEventListener('resize', updateHeight)
+updateHeight()
+
+function updateStyle () {
+  document.documentElement.style.setProperty('--window-height', `${window.innerHeight}px`)
+  document.documentElement.style.setProperty('--window-width', `${window.innerWidth}px`)
+  document.documentElement.style.setProperty('--height', `${height.value}px`)
+  document.documentElement.style.setProperty('--width', `${width.value}px`)
+  document.documentElement.style.setProperty('--hs', `${height.value * 0.01}px`)
+  document.documentElement.style.setProperty('--ws', `${width.value * 0.01}px`)
+}
+watch(height, updateStyle)
+updateStyle()
 
 const codeDistance = ref(3)
-const codeType = ref('rsc-bit-flip')
+const codeType = ref('rsc-depolarize-d-3')
 const decoded = ref(false)
 
 watch(codeDistance, newVal => {
@@ -26,24 +53,17 @@ watch(codeDistance, newVal => {
         <p v-if="decoded">Rigorously proven (<a href="" target="_blank">decoding process</a>)</p>
 
         <div class="controller-panel">
-          <!-- Code distance selector -->
-          <div>
-            <select id="code-distance" class="select" v-model="codeDistance">
-              <option :value="3">
-                <math><mi>d</mi><mo>=</mo><mn>3</mn></math>
-              </option>
-              <option :value="5">
-                <math><mi>d</mi><mo>=</mo><mn>5</mn></math>
-              </option>
-            </select>
-          </div>
           <!-- Code type selector -->
           <div>
             <select id="code-type" class="select" v-model="codeType">
-              <option value="rsc-bit-flip">Surface Code (Bit-Flip)</option>
-              <option value="rsc-depolarize">Surface Code (Depolarize)</option>
-              <option value="rsc-y-only">Surface Code (Y-only)</option>
-              <option value="color-bit-flip">Color Code (Bit-Flip)</option>
+              <option value="rsc-bit-flip-d-3">Surface Code (Bit-Flip, d=3)</option>
+              <option value="rsc-bit-flip-d-5">Surface Code (Bit-Flip, d=5)</option>
+              <option value="rsc-depolarize-d-3">Surface Code (Depolarize, d=3)</option>
+              <option value="rsc-depolarize-d-5">Surface Code (Depolarize, d=5)</option>
+              <option value="rsc-y-only-d-3">Surface Code (Y-only, d=3)</option>
+              <option value="rsc-y-only-d-5">Surface Code (Y-only, d=5)</option>
+              <option value="color-bit-flip-d-3">Color Code (Bit-Flip, d=3)</option>
+              <option value="color-bit-flip-d-5">Color Code (Bit-Flip, d=5)</option>
             </select>
           </div>
 
@@ -55,7 +75,7 @@ watch(codeDistance, newVal => {
             <button class="button decode-button">Decode</button>
           </div>
         </div>
-        <div style="height: 10vh"></div>
+        <div style="height: calc(10 * var(--hs))"></div>
       </div>
 
       <!-- GitHub icon in bottom-left corner -->
@@ -97,28 +117,26 @@ watch(codeDistance, newVal => {
 :global(html),
 :global(body) {
   overflow: hidden;
-  height: 100vh;
-  width: 100vw;
+  height: var(--window-height);
+  width: var(--window-width);
 }
 
 .app-container {
-  width: 100vw;
-  height: 100vh;
+  width: var(--window-width);
+  height: var(--window-height);
   display: flex;
-  align-items: center;
+  align-items: top;
+  padding-top: var(--hs);
   justify-content: center;
   background-color: #f5f5f5;
-  padding: 2vh;
 }
 
 .portrait-region {
-  /* Golden ratio: height = width * 1.618 */
-  aspect-ratio: 1 / 1.618;
-  max-width: 100%;
-  max-height: 100%;
+  width: var(--width);
+  height: var(--height);
   background-color: white;
-  border-radius: 1vh;
-  box-shadow: 0 0.8vh 4vh rgba(0, 0, 0, 0.1);
+  border-radius: var(--hs);
+  box-shadow: 0 calc(0.8 * var(--hs)) calc(4 * var(--hs)) rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -129,19 +147,23 @@ watch(codeDistance, newVal => {
 .content-placeholder {
   position: relative;
   text-align: center;
-  padding: 4vh;
+  padding: calc(4 * var(--hs));
   color: #333;
 }
 
 .content-placeholder h1 {
-  font-size: 4vh; /* Relative to viewport height, which scales with the portrait region */
-  margin-bottom: 2vh;
+  font-size: calc(
+    4 * var(--hs)
+  ); /* Relative to viewport height, which scales with the portrait region */
+  margin-bottom: calc(2 * var(--hs));
   font-weight: 600;
 }
 
 .content-placeholder p {
-  font-size: 1.5vh; /* Relative to viewport height, which scales with the portrait region */
-  line-height: 1.6;
+  font-size: calc(
+    1.5 * var(--hs)
+  ); /* Relative to viewport height, which scales with the portrait region */
+  line-height: calc(1.6 * var(--hs));
   color: #666;
 }
 
@@ -149,14 +171,14 @@ watch(codeDistance, newVal => {
   aspect-ratio: 1;
   width: 100%;
   background-color: red;
-  margin: 2vh auto;
+  margin: calc(2 * var(--hs)) auto;
 }
 
 /* GitHub icon styles */
 .github-link {
   position: absolute;
-  bottom: 2vh;
-  left: 2vh;
+  bottom: calc(2 * var(--hs));
+  left: calc(2 * var(--hs));
   color: #333;
   transition: color 0.3s ease;
   z-index: 10;
@@ -167,23 +189,23 @@ watch(codeDistance, newVal => {
 }
 
 .github-icon {
-  width: 4vh;
-  height: 4vh;
+  width: calc(4 * var(--hs));
+  height: calc(4 * var(--hs));
 }
 
 /* Python/PyPI icon styles */
 .python-link {
   position: absolute;
-  bottom: 2vh;
-  left: 7vh;
+  bottom: calc(2 * var(--hs));
+  left: calc(7 * var(--hs));
   color: #333;
   transition: color 0.3s ease;
   z-index: 10;
 }
 
 .python-icon {
-  width: 4vh;
-  height: 4vh;
+  width: calc(4 * var(--hs));
+  height: calc(4 * var(--hs));
 }
 
 .controller-panel {
@@ -191,20 +213,21 @@ watch(codeDistance, newVal => {
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 2vh;
-  margin-top: 3vh;
+  gap: calc(2 * var(--hs));
+  margin-top: calc(3 * var(--hs));
 }
 
 .select {
-  padding: 1vh 1vh;
-  font-size: 1.5vh;
+  padding: calc(1 * var(--hs)) calc(1 * var(--hs));
+  height: calc(4 * var(--hs));
+  font-size: calc(1.5 * var(--hs));
   border: 1px solid #ccc;
-  border-radius: 0.5vh;
+  border-radius: calc(0.5 * var(--hs));
   background-color: white;
   color: #333;
   cursor: pointer;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
-  min-width: 4vh;
+  min-width: calc(4 * var(--hs));
 }
 
 .select:hover {
@@ -214,17 +237,18 @@ watch(codeDistance, newVal => {
 .select:focus {
   outline: none;
   border-color: #3776ab;
-  box-shadow: 0 0 0 0.2vh rgba(55, 118, 171, 0.2);
+  box-shadow: 0 0 0 calc(0.2 * var(--hs)) rgba(55, 118, 171, 0.2);
 }
 
 .button {
-  padding: 1vh 1vh;
-  font-size: 1.5vh;
-  border-radius: 0.5vh;
+  height: calc(4 * var(--hs));
+  padding: calc(1 * var(--hs)) calc(1 * var(--hs));
+  font-size: calc(1.5 * var(--hs));
+  border-radius: calc(0.5 * var(--hs));
   color: black;
   cursor: pointer;
   transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
-  min-width: 3vh;
+  min-width: calc(3 * var(--hs));
   /* font-weight: 600; */
   text-shadow: 0 5px 5px rgb(255, 255, 255);
 }
@@ -241,7 +265,7 @@ watch(codeDistance, newVal => {
     transparent 75%,
     transparent
   );
-  background-size: 1vh 1vh;
+  background-size: calc(1 * var(--hs)) calc(1 * var(--hs));
 }
 
 .decode-button:hover {
@@ -256,15 +280,15 @@ watch(codeDistance, newVal => {
     transparent 75%,
     transparent
   );
-  background-size: 1vh 1vh;
-  transform: translateY(-0.1vh);
-  box-shadow: 0 0.2vh 0.4vh rgba(230, 126, 34, 0.3);
+  background-size: calc(1 * var(--hs)) calc(1 * var(--hs));
+  transform: translateY(calc(-0.1 * var(--hs)));
+  box-shadow: 0 calc(0.2 * var(--hs)) calc(0.4 * var(--hs)) rgba(230, 126, 34, 0.3);
 }
 
 .decode-button:focus {
   outline: none;
   border-color: #d35400;
-  box-shadow: 0 0 0 0.2vh rgba(230, 126, 34, 0.4);
+  box-shadow: 0 0 0 calc(0.2 * var(--hs)) rgba(230, 126, 34, 0.4);
 }
 
 .decode-button:active {
@@ -278,7 +302,7 @@ watch(codeDistance, newVal => {
     transparent 75%,
     transparent
   );
-  background-size: 1vh 1vh;
+  background-size: calc(1 * var(--hs)) calc(1 * var(--hs));
   transform: translateY(0);
 }
 
@@ -290,14 +314,14 @@ watch(codeDistance, newVal => {
 .reset-button:hover {
   border-color: #c0c0c0;
   background-color: #f8f9fa;
-  transform: translateY(-0.1vh);
-  box-shadow: 0 0.2vh 0.4vh rgba(149, 165, 166, 0.3);
+  transform: translateY(calc(-0.1 * var(--hs)));
+  box-shadow: 0 calc(0.2 * var(--hs)) calc(0.4 * var(--hs)) rgba(149, 165, 166, 0.3);
 }
 
 .reset-button:focus {
   outline: none;
   border-color: #c0c0c0;
-  box-shadow: 0 0 0 0.2vh rgba(149, 165, 166, 0.4);
+  box-shadow: 0 0 0 calc(0.2 * var(--hs)) rgba(149, 165, 166, 0.4);
 }
 
 .reset-button:active {
