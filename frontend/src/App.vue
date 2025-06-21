@@ -28,6 +28,16 @@
           />
         </svg>
       </a>
+
+      <!-- Python/PyPI icon -->
+      <a
+        href="https://pypi.org/project/mwpf/"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="python-link"
+      >
+        <img src="./assets/pypi.png" alt="PyPI" class="python-icon" />
+      </a>
     </div>
   </div>
 </template>
@@ -114,6 +124,21 @@
 }
 
 .github-icon {
+  width: 4vh;
+  height: 4vh;
+}
+
+/* Python/PyPI icon styles */
+.python-link {
+  position: absolute;
+  bottom: 2vh;
+  left: 7vh;
+  color: #333;
+  transition: color 0.3s ease;
+  z-index: 10;
+}
+
+.python-icon {
   width: 4vh;
   height: 4vh;
 }
