@@ -1,3 +1,5 @@
+pub mod codes;
+
 use actix_web::{get, web, App, HttpServer, Responder};
 use clap::Parser;
 use lazy_static::lazy_static;
@@ -87,4 +89,14 @@ pub async fn main() -> std::io::Result<()> {
         .bind((args.ip, args.port))?
         .run()
         .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_code_info() {
+        // cargo test test_code_info -- --nocapture
+    }
 }

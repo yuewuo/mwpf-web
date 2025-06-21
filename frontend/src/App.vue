@@ -1,4 +1,14 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { ref, watch } from 'vue'
+
+const codeDistance = ref(3)
+const codeType = ref('rsc-bit-flip')
+const decoded = ref(false)
+
+watch(codeDistance, newVal => {
+  console.log('codeDistance changed to', newVal)
+})
+</script>
 
 <template>
   <div class="app-container">
@@ -12,7 +22,40 @@
         <div class="code">
           <div style="width: 50%; height: 50%; background-color: blue"></div>
         </div>
-        <p>Rigorously proven</p>
+        <p v-if="!decoded">Click "Decode" to start decoding</p>
+        <p v-if="decoded">Rigorously proven (<a href="" target="_blank">decoding process</a>)</p>
+
+        <div class="controller-panel">
+          <!-- Code distance selector -->
+          <div>
+            <select id="code-distance" class="select" v-model="codeDistance">
+              <option :value="3">
+                <math><mi>d</mi><mo>=</mo><mn>3</mn></math>
+              </option>
+              <option :value="5">
+                <math><mi>d</mi><mo>=</mo><mn>5</mn></math>
+              </option>
+            </select>
+          </div>
+          <!-- Code type selector -->
+          <div>
+            <select id="code-type" class="select" v-model="codeType">
+              <option value="rsc-bit-flip">Surface Code (Bit-Flip)</option>
+              <option value="rsc-depolarize">Surface Code (Depolarize)</option>
+              <option value="rsc-y-only">Surface Code (Y-only)</option>
+              <option value="color-bit-flip">Color Code (Bit-Flip)</option>
+            </select>
+          </div>
+
+          <!-- Action button -->
+          <div>
+            <button class="button reset-button" :disabled="!decoded">Reset</button>
+          </div>
+          <div>
+            <button class="button decode-button">Decode</button>
+          </div>
+        </div>
+        <div style="height: 10vh"></div>
       </div>
 
       <!-- GitHub icon in bottom-left corner -->
@@ -141,5 +184,140 @@
 .python-icon {
   width: 4vh;
   height: 4vh;
+}
+
+.controller-panel {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 2vh;
+  margin-top: 3vh;
+}
+
+.select {
+  padding: 1vh 1vh;
+  font-size: 1.5vh;
+  border: 1px solid #ccc;
+  border-radius: 0.5vh;
+  background-color: white;
+  color: #333;
+  cursor: pointer;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  min-width: 4vh;
+}
+
+.select:hover {
+  border-color: #666;
+}
+
+.select:focus {
+  outline: none;
+  border-color: #3776ab;
+  box-shadow: 0 0 0 0.2vh rgba(55, 118, 171, 0.2);
+}
+
+.button {
+  padding: 1vh 1vh;
+  font-size: 1.5vh;
+  border-radius: 0.5vh;
+  color: black;
+  cursor: pointer;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+  min-width: 3vh;
+  /* font-weight: 600; */
+  text-shadow: 0 5px 5px rgb(255, 255, 255);
+}
+
+.decode-button {
+  border: 1px solid #e67e22;
+  background: linear-gradient(
+    45deg,
+    #ffa726 25%,
+    transparent 25%,
+    transparent 50%,
+    #ffa726 50%,
+    #ffa726 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 1vh 1vh;
+}
+
+.decode-button:hover {
+  border-color: #d35400;
+  background: linear-gradient(
+    45deg,
+    #ff9800 25%,
+    transparent 25%,
+    transparent 50%,
+    #ff9800 50%,
+    #ff9800 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 1vh 1vh;
+  transform: translateY(-0.1vh);
+  box-shadow: 0 0.2vh 0.4vh rgba(230, 126, 34, 0.3);
+}
+
+.decode-button:focus {
+  outline: none;
+  border-color: #d35400;
+  box-shadow: 0 0 0 0.2vh rgba(230, 126, 34, 0.4);
+}
+
+.decode-button:active {
+  background: linear-gradient(
+    45deg,
+    #ff8f00 25%,
+    transparent 25%,
+    transparent 50%,
+    #ff8f00 50%,
+    #ff8f00 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 1vh 1vh;
+  transform: translateY(0);
+}
+
+.reset-button {
+  border: 1px solid #d5d5d5;
+  background-color: white;
+}
+
+.reset-button:hover {
+  border-color: #c0c0c0;
+  background-color: #f8f9fa;
+  transform: translateY(-0.1vh);
+  box-shadow: 0 0.2vh 0.4vh rgba(149, 165, 166, 0.3);
+}
+
+.reset-button:focus {
+  outline: none;
+  border-color: #c0c0c0;
+  box-shadow: 0 0 0 0.2vh rgba(149, 165, 166, 0.4);
+}
+
+.reset-button:active {
+  background-color: #e9ecef;
+  transform: translateY(0);
+}
+
+.reset-button:disabled {
+  background-color: #f5f5f5;
+  border-color: #e0e0e0;
+  color: #999;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.reset-button:disabled:hover {
+  background-color: #f5f5f5;
+  border-color: #e0e0e0;
+  transform: none;
+  box-shadow: none;
 }
 </style>
