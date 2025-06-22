@@ -339,6 +339,24 @@ function updateStyle() {
 }
 watch([height, code], updateStyle)
 updateStyle()
+
+const downDataQubitIdx = ref<number | null>(null)
+
+function mouseDown(event: MouseEvent | TouchEvent, idx: number) {
+  downDataQubitIdx.value = idx
+}
+
+function randomizeError(idx: number) {
+  downDataQubitIdx.value = null
+}
+
+document.addEventListener('mouseup', function (event) {
+  downDataQubitIdx.value = null
+})
+
+watch(downDataQubitIdx, idx => {
+  console.log('data qubit', idx)
+})
 </script>
 
 <template>
@@ -352,12 +370,13 @@ updateStyle()
         </p>
         <div class="code">
           <!-- Stabilizer shapes -->
-          <svg class="stabilizer-shape">
+          <svg class="stabilizer-shape non-selectable">
             <polygon
               v-for="(shape, idx) in code.stabilizer_shapes"
               :key="idx"
               :points="shape.map(([x, y]) => transform([y, x])).join(' ')"
               :fill="code.stabilizer_colors[idx]"
+              class="non-selectable"
             />
           </svg>
           <!-- Stabilizer checks-->
@@ -365,7 +384,7 @@ updateStyle()
           <div
             v-for="(pos, idx) in code.stabilizer_positions"
             :key="idx"
-            class="qubit"
+            class="qubit non-selectable"
             :style="{
               transform: 'translate(' + -data_qubit_radius + 'px, ' + -data_qubit_radius + 'px)',
               borderRadius: data_qubit_radius + 'px',
@@ -390,8 +409,14 @@ updateStyle()
               top: transform(pos)[0] + 'px',
               left: transform(pos)[1] + 'px'
             }"
+            @touchstart="mouseDown($event, idx)"
+            @mousedown="mouseDown($event, idx)"
+            @mouseup="randomizeError(idx)"
+            @touchend="randomizeError(idx)"
+            @mouseenter="console.log('mouseenter', idx)"
+            @mouseleave="console.log('mouseleave', idx)"
           >
-            X
+            <span class="non-selectable">X</span>
           </div>
         </div>
         <p v-if="!decoded">Click "Decode" to start decoding</p>
@@ -581,6 +606,14 @@ updateStyle()
   height: var(--width);
   top: 0;
   left: 0;
+}
+
+.non-selectable {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  pointer-events: none;
 }
 
 /* GitHub icon styles */
