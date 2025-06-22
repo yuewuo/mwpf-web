@@ -30,6 +30,7 @@ interface Code {
   stabilizer_shapes: [number, number][][]
   stabilizer_checks: [number, string][][] // (data_qubit_index, check_type)
   stabilizer_colors: string[]
+  errors?: Map<number, string>
 }
 
 const code: Ref<Code> = ref({
@@ -361,14 +362,30 @@ function mouseDown(event: MouseEvent | TouchEvent, idx: number) {
 
 function randomizeError(idx: number) {
   if (downDataQubitIdx.value == idx) {
-    console.log('randomized_error', idx)
+    console.log('randomize error on data qubit ', idx)
+    if (code.value.errors == null) {
+      code.value.errors = new Map()
+    }
+    const error_type = ['I', 'X', 'Y', 'Z'][Math.floor(Math.random() * 4)]
+    if (error_type === 'I') {
+      code.value.errors.delete(idx)
+    } else {
+      code.value.errors.set(idx, error_type)
+    }
   }
   downDataQubitIdx.value = null
 }
 
 function globalMouseUp(event: MouseEvent) {
   if (downDataQubitIdx.value !== null && downErrorAction.value !== null) {
-    console.log(downErrorAction.value, downDataQubitIdx.value)
+    if (code.value.errors == null) {
+      code.value.errors = new Map()
+    }
+    if (downErrorAction.value === 'I') {
+      code.value.errors.delete(downDataQubitIdx.value)
+    } else {
+      code.value.errors.set(downDataQubitIdx.value, downErrorAction.value)
+    }
     downDataQubitIdx.value = null
   }
 }
@@ -445,7 +462,9 @@ function mouseLeaveErrorAction() {
             @mouseup="randomizeError(idx)"
             @touchend="randomizeError(idx)"
           >
-            <span v-if="downDataQubitIdx !== idx" class="non-selectable">X</span>
+            <span v-if="downDataQubitIdx !== idx" class="non-selectable">{{
+              code.errors?.get(idx) ?? ''
+            }}</span>
             <svg
               v-else
               fill="#000000"
