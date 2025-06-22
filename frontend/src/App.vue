@@ -378,7 +378,6 @@ function randomizeError(idx: number) {
 const dataQubits = ref<HTMLDivElement[]>([])
 
 function globalMouseUp(event: MouseEvent | TouchEvent) {
-  console.log(downDataQubitIdx.value, downErrorAction.value)
   if (downDataQubitIdx.value !== null && downErrorAction.value !== null) {
     if (code.value.errors == null) {
       code.value.errors = new Map()
@@ -441,6 +440,16 @@ function mouseLeaveErrorAction() {
   downErrorAction.value = null
 }
 
+function stabilizerCheckPosition(stabilizer_idx: number, data_idx: number) {
+  const [x1, y1] = transform(code.value.data_qubit_positions[data_idx])
+  const [x2, y2] = transform(code.value.stabilizer_positions[stabilizer_idx])
+  const diff = [x2 - x1, y2 - y1]
+  const length = Math.sqrt(diff[0] ** 2 + diff[1] ** 2)
+  const direction = [diff[0] / length, diff[1] / length]
+  const check_length = 1.5 * data_qubit_radius.value
+  return [x1 + direction[0] * check_length, y1 + direction[1] * check_length]
+}
+
 onMounted(() => {
   document.addEventListener('mouseup', globalMouseUp)
   document.addEventListener('touchend', globalMouseUp)
@@ -450,6 +459,30 @@ onBeforeUnmount(() => {
   document.removeEventListener('mouseup', globalMouseUp)
   document.removeEventListener('touchend', globalMouseUp)
   document.removeEventListener('touchmove', globalTouchMove)
+})
+
+function reset() {
+  code.value.errors = undefined
+}
+
+const syndrome = ref<Set<number>>(new Set())
+
+watch(code.value, () => {
+  const errors = code.value.errors
+  const new_syndrome: Set<number> = new Set()
+  if (errors != null) {
+    for (const [data_idx, error_type] of errors) {
+      const error_syndrome = code.value.data_qubit_actions[data_idx][error_type]
+      for (const stabilizer_idx of error_syndrome) {
+        if (!new_syndrome.has(stabilizer_idx)) {
+          new_syndrome.add(stabilizer_idx)
+        } else {
+          new_syndrome.delete(stabilizer_idx)
+        }
+      }
+    }
+  }
+  syndrome.value = new_syndrome
 })
 </script>
 
@@ -474,22 +507,21 @@ onBeforeUnmount(() => {
             />
           </svg>
           <!-- Stabilizer checks-->
-          <div class="stabilizer-checks">
+          <div
+            v-for="(check, stabilizer_idx) in code.stabilizer_checks"
+            :key="stabilizer_idx"
+            style="position: absolute"
+          >
             <div
-              v-for="(check, stabilizer_idx) in code.stabilizer_checks"
-              :key="stabilizer_idx"
+              v-for="([data_idx, check_type], check_idx) in check"
+              :key="check_idx"
               class="stabilizer-check"
+              :style="{
+                top: stabilizerCheckPosition(stabilizer_idx, data_idx)[0] + 'px',
+                left: stabilizerCheckPosition(stabilizer_idx, data_idx)[1] + 'px'
+              }"
             >
-              <div
-                v-for="(qubit, data_idx) in check"
-                :key="data_idx"
-                :style="{
-                  top: transform(code.data_qubit_positions[data_idx])[0] + 'px',
-                  left: transform(code.data_qubit_positions[data_idx])[1] + 'px'
-                }"
-              >
-                {{ qubit }}
-              </div>
+              {{ check_type }}
             </div>
           </div>
           <!-- Stabilizers -->
@@ -501,9 +533,11 @@ onBeforeUnmount(() => {
               borderRadius: data_qubit_radius + 'px',
               width: 2 * data_qubit_radius + 'px',
               height: 2 * data_qubit_radius + 'px',
-              border: data_qubit_radius * 0.2 + 'px solid lightgray',
+              border:
+                data_qubit_radius * 0.2 + 'px solid ' + (syndrome.has(idx) ? 'pink' : 'lightgray'),
               top: transform(pos)[0] + 'px',
-              left: transform(pos)[1] + 'px'
+              left: transform(pos)[1] + 'px',
+              backgroundColor: syndrome.has(idx) ? 'red' : 'white'
             }"
           ></div>
           <!-- Data qubits -->
@@ -632,7 +666,7 @@ onBeforeUnmount(() => {
 
         <div class="controller-panel">
           <div>
-            <button class="button reset-button">Reset</button>
+            <button class="button reset-button" @click="reset">Reset</button>
           </div>
           <!-- Code type selector -->
           <div>
@@ -753,7 +787,6 @@ onBeforeUnmount(() => {
 
 .qubit {
   position: absolute;
-  background-color: white;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -771,6 +804,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
   transition: all 0.3s ease;
   animation: breathing 3s ease-in-out infinite;
+  background-color: white;
   box-shadow: 0 0 calc(0.5 * var(--radius)) rgba(255, 0, 0, 0.3);
 }
 
@@ -818,9 +852,11 @@ onBeforeUnmount(() => {
   left: 0;
 }
 
-.stabilizer-checks {
+.stabilizer-check {
   position: absolute;
   transform: translate(-50%, -50%);
+  font-size: calc(1 * var(--radius));
+  color: lightgrey;
 }
 
 .non-selectable {
