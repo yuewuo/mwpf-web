@@ -354,10 +354,9 @@ updateStyle()
 
 const downDataQubitIdx = ref<number | null>(null)
 
-function mouseDown(event: MouseEvent | TouchEvent, idx: number) {
+function mouseDown(idx: number) {
   downDataQubitIdx.value = idx
   downErrorAction.value = null
-  event.preventDefault()
 }
 
 function randomizeError(idx: number) {
@@ -376,7 +375,10 @@ function randomizeError(idx: number) {
   downDataQubitIdx.value = null
 }
 
-function globalMouseUp(event: MouseEvent) {
+const dataQubits = ref<HTMLDivElement[]>([])
+
+function globalMouseUp(event: MouseEvent | TouchEvent) {
+  console.log(downDataQubitIdx.value, downErrorAction.value)
   if (downDataQubitIdx.value !== null && downErrorAction.value !== null) {
     if (code.value.errors == null) {
       code.value.errors = new Map()
@@ -386,15 +388,46 @@ function globalMouseUp(event: MouseEvent) {
     } else {
       code.value.errors.set(downDataQubitIdx.value, downErrorAction.value)
     }
-    downDataQubitIdx.value = null
+  }
+  // check if it's randomize event
+  else if (downDataQubitIdx.value !== null) {
+    let target = event.target as Element
+    if (event instanceof TouchEvent) {
+      target = document.elementFromPoint(
+        event.changedTouches[0].clientX,
+        event.changedTouches[0].clientY
+      ) as Element
+    }
+    if (target.closest('.data-qubit') == dataQubits.value[downDataQubitIdx.value]) {
+      randomizeError(downDataQubitIdx.value)
+    }
+  }
+  downDataQubitIdx.value = null
+}
+function globalTouchMove(event: TouchEvent) {
+  // handling touch screen error selection
+  let target = document.elementFromPoint(
+    event.changedTouches[0].clientX,
+    event.changedTouches[0].clientY
+  ) as HTMLElement
+  if (target.closest('.error-button')) {
+    let error = 'I'
+    if (target.classList.contains('error-i')) {
+      error = 'I'
+    } else if (target.classList.contains('error-x')) {
+      error = 'X'
+    } else if (target.classList.contains('error-y')) {
+      error = 'Y'
+    } else if (target.classList.contains('error-z')) {
+      error = 'Z'
+    }
+    mouseEnterErrorAction(error)
+    target.focus()
+  } else {
+    mouseLeaveErrorAction()
+    ;(document.activeElement as HTMLElement)?.blur()
   }
 }
-onMounted(() => {
-  document.addEventListener('mouseup', globalMouseUp)
-})
-onBeforeUnmount(() => {
-  document.removeEventListener('mouseup', globalMouseUp)
-})
 
 const ERROR_ACTION_DIS_RATIO = 3
 
@@ -407,6 +440,17 @@ function mouseEnterErrorAction(errorType: string) {
 function mouseLeaveErrorAction() {
   downErrorAction.value = null
 }
+
+onMounted(() => {
+  document.addEventListener('mouseup', globalMouseUp)
+  document.addEventListener('touchend', globalMouseUp)
+  document.addEventListener('touchmove', globalTouchMove)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('mouseup', globalMouseUp)
+  document.removeEventListener('touchend', globalMouseUp)
+  document.removeEventListener('touchmove', globalTouchMove)
+})
 </script>
 
 <template>
@@ -430,6 +474,24 @@ function mouseLeaveErrorAction() {
             />
           </svg>
           <!-- Stabilizer checks-->
+          <div class="stabilizer-checks">
+            <div
+              v-for="(check, stabilizer_idx) in code.stabilizer_checks"
+              :key="stabilizer_idx"
+              class="stabilizer-check"
+            >
+              <div
+                v-for="(qubit, data_idx) in check"
+                :key="data_idx"
+                :style="{
+                  top: transform(code.data_qubit_positions[data_idx])[0] + 'px',
+                  left: transform(code.data_qubit_positions[data_idx])[1] + 'px'
+                }"
+              >
+                {{ qubit }}
+              </div>
+            </div>
+          </div>
           <!-- Stabilizers -->
           <div
             v-for="(pos, idx) in code.stabilizer_positions"
@@ -457,10 +519,9 @@ function mouseLeaveErrorAction() {
               top: transform(pos)[0] + 'px',
               left: transform(pos)[1] + 'px'
             }"
-            @touchstart="mouseDown($event, idx)"
-            @mousedown="mouseDown($event, idx)"
-            @mouseup="randomizeError(idx)"
-            @touchend="randomizeError(idx)"
+            @touchstart.prevent="mouseDown(idx)"
+            @mousedown.prevent="mouseDown(idx)"
+            ref="dataQubits"
           >
             <span v-if="downDataQubitIdx !== idx" class="non-selectable">{{
               code.errors?.get(idx) ?? ''
@@ -518,6 +579,7 @@ function mouseLeaveErrorAction() {
                 fontSize: ERROR_ACTION_DIS_RATIO * 0.7 * data_qubit_radius + 'px'
               }"
               @mouseenter="mouseEnterErrorAction('X')"
+              @touchmove="mouseEnterErrorAction('X')"
               @mouseleave="mouseLeaveErrorAction"
               v-if="'X' in code.data_qubit_actions[downDataQubitIdx]"
             >
@@ -569,6 +631,9 @@ function mouseLeaveErrorAction() {
         <p v-if="decoded">Rigorously proven (<a href="" target="_blank">decoding process</a>)</p>
 
         <div class="controller-panel">
+          <div>
+            <button class="button reset-button">Reset</button>
+          </div>
           <!-- Code type selector -->
           <div>
             <select id="code-type" class="select" v-model="codeType">
@@ -581,11 +646,6 @@ function mouseLeaveErrorAction() {
               <option value="color-bit-flip-d-3">Color Code (Bit-Flip, d=3)</option>
               <option value="color-bit-flip-d-5">Color Code (Bit-Flip, d=5)</option>
             </select>
-          </div>
-
-          <!-- Action button -->
-          <div>
-            <button class="button reset-button" :disabled="!decoded">Reset</button>
           </div>
           <div>
             <button class="button decode-button">Decode</button>
@@ -756,6 +816,11 @@ function mouseLeaveErrorAction() {
   height: var(--width);
   top: 0;
   left: 0;
+}
+
+.stabilizer-checks {
+  position: absolute;
+  transform: translate(-50%, -50%);
 }
 
 .non-selectable {
