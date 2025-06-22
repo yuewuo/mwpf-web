@@ -1,8 +1,13 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Code {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServerCodeInfo {
+    pub client_info: ClientCodeInfo,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClientCodeInfo {
     pub id: String,
     pub name: String,
     pub d: usize,
@@ -14,7 +19,7 @@ pub struct Code {
     pub stabilizer_colors: Vec<String>,
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub enum NoiseType {
     #[default]
     Depolarize,
@@ -67,7 +72,7 @@ impl std::fmt::Debug for NoiseType {
 const RSC_SCALE: f64 = 1.0;
 const RSC_ROUND_SEGMENTS: usize = 36; // how many points on the round
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct RotatedSurfaceCode {
     pub d: usize,
     pub noise_type: NoiseType,
@@ -116,7 +121,12 @@ impl RotatedSurfaceCode {
     }
 
     pub fn is_stabilizer(&self, i: usize, j: usize) -> bool {
-        self.is_qubit(i, j) && i % 2 == 0
+        let is_stabilizer = self.is_qubit(i, j) && i % 2 == 0;
+        if matches!(self.noise_type, NoiseType::BitFlip) {
+            // only add Z stabilizers for bit-flip noise
+            return is_stabilizer && (i + j) % 4 == 2;
+        }
+        is_stabilizer
     }
 
     pub fn is_z_stabilizer(&self, i: usize, j: usize) -> bool {
@@ -268,22 +278,24 @@ impl RotatedSurfaceCode {
     }
 }
 
-impl From<&RotatedSurfaceCode> for Code {
+impl From<&RotatedSurfaceCode> for ServerCodeInfo {
     fn from(code: &RotatedSurfaceCode) -> Self {
         Self {
-            id: format!("rsc-{}-d-{}", code.noise_type, code.d),
-            name: format!("Surface Code ({:?}, d={})", code.noise_type, code.d),
-            d: code.d,
-            data_qubit_positions: (0..code.data_qubit_positions.len())
-                .map(|data_idx| code.data_qubit_f64_position(data_idx))
-                .collect(),
-            stabilizer_positions: (0..code.stabilizer_positions.len())
-                .map(|stabilizer_idx| code.stabilizer_f64_position(stabilizer_idx))
-                .collect(),
-            stabilizer_shapes: code.stabilizer_shapes(),
-            stabilizer_checks: code.stabilizer_checks(),
-            stabilizer_colors: code.stabilizer_colors(),
-            data_qubit_actions: code.data_qubit_actions.clone(),
+            client_info: ClientCodeInfo {
+                id: format!("rsc-{}-d-{}", code.noise_type, code.d),
+                name: format!("Surface Code ({:?}, d={})", code.noise_type, code.d),
+                d: code.d,
+                data_qubit_positions: (0..code.data_qubit_positions.len())
+                    .map(|data_idx| code.data_qubit_f64_position(data_idx))
+                    .collect(),
+                stabilizer_positions: (0..code.stabilizer_positions.len())
+                    .map(|stabilizer_idx| code.stabilizer_f64_position(stabilizer_idx))
+                    .collect(),
+                stabilizer_shapes: code.stabilizer_shapes(),
+                stabilizer_checks: code.stabilizer_checks(),
+                stabilizer_colors: code.stabilizer_colors(),
+                data_qubit_actions: code.data_qubit_actions.clone(),
+            },
         }
     }
 }
@@ -296,11 +308,14 @@ mod tests {
     fn test_rotated_surface_code() {
         // cargo test -- test_rotated_surface_code --nocapture
         let code = RotatedSurfaceCode::new(3, NoiseType::Depolarize);
-        println!("{:?}\n{:?}\n\n", code, Code::from(&code));
-        println!("{}\n", serde_json::to_string(&Code::from(&code)).unwrap());
+        println!("{:?}\n{:?}\n\n", code, ServerCodeInfo::from(&code));
+        println!(
+            "{}\n",
+            serde_json::to_string(&ServerCodeInfo::from(&code)).unwrap()
+        );
         // let code = RotatedSurfaceCode::new(3, NoiseType::BitFlip);
-        // println!("{:?}\n{:?}\n\n", code, Code::from(code));
+        // println!("{:?}\n{:?}\n\n", code, ServerCodeInfo::from(code));
         // let code = RotatedSurfaceCode::new(3, NoiseType::OnlyY);
-        // println!("{:?}\n{:?}\n\n", code, Code::from(code));
+        // println!("{:?}\n{:?}\n\n", code, ServerCodeInfo::from(code));
     }
 }

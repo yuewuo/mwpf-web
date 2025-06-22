@@ -10,6 +10,7 @@ A simple web application to demo MWPF decoder
 ### Build and Run
 ```bash
 cargo run
+cd visualizer && npm run dev
 ```
 
 The server will start on `http://127.0.0.1:8080`
@@ -41,8 +42,8 @@ Response: `{ 'rsc-d-5': { .. }, 'color-d-5': { .. } }`
 
 ## Endpoints
 
-| Endpoint  | Method | Description      | Parameters                            |
-| --------- | ------ | ---------------- | ------------------------------------- |
-| `/`       | GET    | Health check     | None                                  |
-| `/decode` | GET    | Decode           | type, syndrome, html, visualizer_json |
-| `/codes`  | GET    | Code Information |                                       |
+| Endpoint      | Method | Description      | Parameters                            |
+| ------------- | ------ | ---------------- | ------------------------------------- |
+| `/`           | GET    | Health check     | None                                  |
+| `/api/decode` | GET    | Decode           | type, syndrome, html, visualizer_json |
+| `/api/codes`  | GET    | Code Information |                                       |

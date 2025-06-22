@@ -3,8 +3,10 @@ pub mod codes;
 use actix_web::{get, web, App, HttpServer, Responder};
 use clap::Parser;
 use lazy_static::lazy_static;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::collections::HashMap;
+
+use codes::*;
 
 #[derive(Debug, Deserialize)]
 pub struct DecodeParams {
@@ -14,13 +16,12 @@ pub struct DecodeParams {
     pub html: Option<String>,
 }
 
-#[get("/decode")]
+#[get("/api/decode")]
 pub async fn decode(query: web::Query<DecodeParams>) -> impl Responder {
     let mut result = String::new();
 
     // Combine the parameters into a single string
     let with_html = query.html.is_some();
-    println!("with_html: {}", with_html);
 
     // If no parameters provided, return a default message
     if result.is_empty() {
@@ -30,29 +31,30 @@ pub async fn decode(query: web::Query<DecodeParams>) -> impl Responder {
     result
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CodeInfo {
-    pub name: String,
-    pub description: String,
+#[get("/api/codes")]
+pub async fn get_codes() -> impl Responder {
+    let codes: Vec<ClientCodeInfo> = CODES.iter().map(|code| code.client_info.clone()).collect();
+    serde_json::to_string(&codes).unwrap()
 }
 
 lazy_static! {
-    static ref CODE_INFO: HashMap<String, CodeInfo> = {
+    static ref CODES: Vec<ServerCodeInfo> = {
+        vec![
+            ServerCodeInfo::from(&RotatedSurfaceCode::new(3, NoiseType::Depolarize)),
+            ServerCodeInfo::from(&RotatedSurfaceCode::new(5, NoiseType::Depolarize)),
+            ServerCodeInfo::from(&RotatedSurfaceCode::new(3, NoiseType::BitFlip)),
+            ServerCodeInfo::from(&RotatedSurfaceCode::new(5, NoiseType::BitFlip)),
+            ServerCodeInfo::from(&RotatedSurfaceCode::new(3, NoiseType::OnlyY)),
+            ServerCodeInfo::from(&RotatedSurfaceCode::new(5, NoiseType::OnlyY)),
+            // ServerCodeInfo::from(&ColorCode::new(3)),
+            // ServerCodeInfo::from(&ColorCode::new(5)),
+        ]
+    };
+    static ref CODES_MAP: HashMap<String, ServerCodeInfo> = {
         let mut map = HashMap::new();
-        map.insert(
-            "rsc-d-5".to_string(),
-            CodeInfo {
-                name: "rsc-d-5".to_string(),
-                description: "rsc-d-5".to_string(),
-            },
-        );
-        map.insert(
-            "color-d-5".to_string(),
-            CodeInfo {
-                name: "color-d-5".to_string(),
-                description: "color-d-5".to_string(),
-            },
-        );
+        for code in CODES.iter() {
+            map.insert(code.client_info.name.clone(), code.clone());
+        }
         map
     };
 }
@@ -85,7 +87,7 @@ pub async fn main() -> std::io::Result<()> {
         args.port
     );
 
-    HttpServer::new(|| App::new().service(index).service(decode))
+    HttpServer::new(|| App::new().service(index).service(decode).service(get_codes))
         .bind((args.ip, args.port))?
         .run()
         .await
