@@ -7,6 +7,7 @@ pub struct Code {
     pub name: String,
     pub d: usize,
     pub data_qubit_positions: Vec<(f64, f64)>,
+    pub data_qubit_actions: Vec<HashMap<String, Vec<usize>>>,
     pub stabilizer_positions: Vec<(f64, f64)>,
     pub stabilizer_shapes: Vec<Vec<(f64, f64)>>,
     pub stabilizer_checks: Vec<Vec<(usize, String)>>, // (data_qubit_index, check_type)
@@ -282,6 +283,7 @@ impl From<&RotatedSurfaceCode> for Code {
             stabilizer_shapes: code.stabilizer_shapes(),
             stabilizer_checks: code.stabilizer_checks(),
             stabilizer_colors: code.stabilizer_colors(),
+            data_qubit_actions: code.data_qubit_actions.clone(),
         }
     }
 }

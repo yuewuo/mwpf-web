@@ -25,6 +25,7 @@ interface Code {
   name: string
   d: number
   data_qubit_positions: [number, number][]
+  data_qubit_actions: { [error: string]: number[] }[] // { error: syndrome }
   stabilizer_positions: [number, number][]
   stabilizer_shapes: [number, number][][]
   stabilizer_checks: [number, string][][] // (data_qubit_index, check_type)
@@ -45,6 +46,17 @@ const code: Ref<Code> = ref({
     [5.0, 1.0],
     [5.0, 3.0],
     [5.0, 5.0]
+  ],
+  data_qubit_actions: [
+    { Y: [2, 1], X: [1], Z: [2] },
+    { Y: [0, 3, 2], X: [3], Z: [0, 2] },
+    { Y: [0, 3], Z: [0], X: [3] },
+    { Y: [1, 2, 4], Z: [2], X: [1, 4] },
+    { Z: [2, 5], Y: [2, 3, 5, 4], X: [3, 4] },
+    { Z: [5], Y: [3, 6, 5], X: [3, 6] },
+    { X: [4], Y: [4, 7], Z: [7] },
+    { Y: [4, 5, 7], X: [4], Z: [5, 7] },
+    { Y: [5, 6], Z: [5], X: [6] }
   ],
   stabilizer_positions: [
     [0.0, 4.0],
@@ -433,7 +445,24 @@ function mouseLeaveErrorAction() {
             @mouseup="randomizeError(idx)"
             @touchend="randomizeError(idx)"
           >
-            <span class="non-selectable">X</span>
+            <span v-if="downDataQubitIdx !== idx" class="non-selectable">X</span>
+            <svg
+              v-else
+              fill="#000000"
+              width="800px"
+              height="800px"
+              viewBox="0 0 256 256"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <g fill-rule="evenodd">
+                <path
+                  d="M47.895 88.097c.001-4.416 3.064-9.837 6.854-12.117l66.257-39.858c3.785-2.277 9.915-2.277 13.707.008l66.28 39.934c3.786 2.28 6.853 7.703 6.852 12.138l-.028 79.603c-.001 4.423-3.069 9.865-6.848 12.154l-66.4 40.205c-3.781 2.29-9.903 2.289-13.69-.01l-66.167-40.185c-3.78-2.295-6.842-7.733-6.84-12.151l.023-79.72zm13.936-6.474l65.834 36.759 62.766-36.278-62.872-36.918L61.83 81.623zM57.585 93.52c0 1.628-1.065 71.86-1.065 71.86-.034 2.206 1.467 4.917 3.367 6.064l61.612 37.182.567-77.413s-64.48-39.322-64.48-37.693zm76.107 114.938l60.912-38.66c2.332-1.48 4.223-4.915 4.223-7.679V93.125l-65.135 37.513v77.82z"
+                />
+                <path
+                  d="M77.76 132.287c-4.782 2.762-11.122.735-14.16-4.526-3.037-5.261-1.622-11.765 3.16-14.526 4.783-2.762 11.123-.735 14.16 4.526 3.038 5.261 1.623 11.765-3.16 14.526zm32 21c-4.782 2.762-11.122.735-14.16-4.526-3.037-5.261-1.622-11.765 3.16-14.526 4.783-2.762 11.123-.735 14.16 4.526 3.038 5.261 1.623 11.765-3.16 14.526zm-32 16c-4.782 2.762-11.122.735-14.16-4.526-3.037-5.261-1.622-11.765 3.16-14.526 4.783-2.762 11.123-.735 14.16 4.526 3.038 5.261 1.623 11.765-3.16 14.526zm32 21c-4.782 2.762-11.122.735-14.16-4.526-3.037-5.261-1.622-11.765 3.16-14.526 4.783-2.762 11.123-.735 14.16 4.526 3.038 5.261 1.623 11.765-3.16 14.526zm78.238-78.052c-4.783-2.762-11.122-.735-14.16 4.526-3.037 5.261-1.623 11.765 3.16 14.526 4.783 2.762 11.123.735 14.16-4.526 3.038-5.261 1.623-11.765-3.16-14.526zm-16.238 29c-4.782-2.762-11.122-.735-14.16 4.526-3.037 5.261-1.622 11.765 3.16 14.526 4.783 2.762 11.123.735 14.16-4.526 3.038-5.261 1.623-11.765-3.16-14.526zm-17 28c-4.782-2.762-11.122-.735-14.16 4.526-3.037 5.261-1.622 11.765 3.16 14.526 4.783 2.762 11.123.735 14.16-4.526 3.038-5.261 1.623-11.765-3.16-14.526zM128.5 69c-6.351 0-11.5 4.925-11.5 11s5.149 11 11.5 11S140 86.075 140 80s-5.149-11-11.5-11z"
+                />
+              </g>
+            </svg>
           </div>
           <!-- Error actions -->
           <div v-if="downDataQubitIdx !== null" class="error-actions">
@@ -471,6 +500,7 @@ function mouseLeaveErrorAction() {
               }"
               @mouseenter="mouseEnterErrorAction('X')"
               @mouseleave="mouseLeaveErrorAction"
+              v-if="'X' in code.data_qubit_actions[downDataQubitIdx]"
             >
               <span class="non-selectable">X</span>
             </button>
@@ -490,6 +520,7 @@ function mouseLeaveErrorAction() {
               }"
               @mouseenter="mouseEnterErrorAction('Y')"
               @mouseleave="mouseLeaveErrorAction"
+              v-if="'Y' in code.data_qubit_actions[downDataQubitIdx]"
             >
               <span class="non-selectable">Y</span>
             </button>
@@ -509,7 +540,7 @@ function mouseLeaveErrorAction() {
               }"
               @mouseenter="mouseEnterErrorAction('Z')"
               @mouseleave="mouseLeaveErrorAction"
-              v-if="1 == 2"
+              v-if="'Z' in code.data_qubit_actions[downDataQubitIdx]"
             >
               <span class="non-selectable">Z</span>
             </button>
