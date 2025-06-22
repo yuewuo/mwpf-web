@@ -352,8 +352,10 @@ updateStyle()
         </p>
         <div class="code">
           <!-- Stabilizer shapes -->
-          <svg v-for="(shape, idx) in code.stabilizer_shapes" :key="idx" class="stabilizer-shape">
+          <svg class="stabilizer-shape">
             <polygon
+              v-for="(shape, idx) in code.stabilizer_shapes"
+              :key="idx"
               :points="shape.map(([x, y]) => transform([y, x])).join(' ')"
               :fill="code.stabilizer_colors[idx]"
             />
@@ -378,7 +380,7 @@ updateStyle()
           <div
             v-for="(pos, idx) in code.data_qubit_positions"
             :key="idx"
-            class="qubit"
+            class="qubit data-qubit"
             :style="{
               transform: 'translate(' + -data_qubit_radius + 'px, ' + -data_qubit_radius + 'px)',
               borderRadius: data_qubit_radius + 'px',
@@ -527,6 +529,50 @@ updateStyle()
   font-size: calc(1.3 * var(--radius));
   color: red;
   font-weight: bold;
+}
+
+/* Data qubit specific styles */
+.data-qubit {
+  cursor: pointer;
+  transition: all 0.3s ease;
+  animation: breathing 3s ease-in-out infinite;
+  box-shadow: 0 0 calc(0.5 * var(--radius)) rgba(255, 0, 0, 0.3);
+}
+
+.data-qubit:hover {
+  transform: translate(-50%, -50%) scale(1.2) !important;
+  box-shadow: 0 0 calc(1 * var(--radius)) rgba(255, 0, 0, 0.6);
+  animation: breathing-hover 1.5s ease-in-out infinite;
+  z-index: 10;
+}
+
+.data-qubit:active {
+  transform: translate(-50%, -50%) scale(0.95) !important;
+  box-shadow: 0 0 calc(0.3 * var(--radius)) rgba(255, 0, 0, 0.8);
+}
+
+@keyframes breathing {
+  0%,
+  100% {
+    box-shadow: 0 0 calc(0.5 * var(--radius)) rgba(255, 0, 0, 0.3);
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    box-shadow: 0 0 calc(0.8 * var(--radius)) rgba(255, 0, 0, 0.5);
+    transform: translate(-50%, -50%) scale(1.05);
+  }
+}
+
+@keyframes breathing-hover {
+  0%,
+  100% {
+    box-shadow: 0 0 calc(1 * var(--radius)) rgba(255, 0, 0, 0.6);
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+  50% {
+    box-shadow: 0 0 calc(1.5 * var(--radius)) rgba(255, 0, 0, 0.8);
+    transform: translate(-50%, -50%) scale(1.25);
+  }
 }
 
 .stabilizer-shape {
