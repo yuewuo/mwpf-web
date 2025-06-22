@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, type Ref } from 'vue'
 
 const height = ref(0) // the height of the portrait region
 const aspectRatio = 1.618
@@ -7,7 +7,7 @@ const width = computed(() => {
   return height.value / aspectRatio
 })
 
-function updateHeight () {
+function updateHeight() {
   if (window.innerHeight > window.innerWidth * aspectRatio) {
     height.value = window.innerWidth * aspectRatio * 0.98
   } else {
@@ -17,24 +17,317 @@ function updateHeight () {
 window.addEventListener('resize', updateHeight)
 updateHeight()
 
-function updateStyle () {
+const codeType = ref('rsc-depolarize-d-3')
+const decoded = ref(false)
+
+interface Code {
+  id: string
+  name: string
+  d: number
+  data_qubit_positions: [number, number][]
+  stabilizer_positions: [number, number][]
+  stabilizer_shapes: [number, number][][]
+  stabilizer_checks: [number, string][][] // (data_qubit_index, check_type)
+}
+
+const code: Ref<Code> = ref({
+  id: 'rsc-depolarize-d-3',
+  name: 'Surface Code (Depolarize, d=3)',
+  d: 3,
+  data_qubit_positions: [
+    [1.0, 1.0],
+    [1.0, 3.0],
+    [1.0, 5.0],
+    [3.0, 1.0],
+    [3.0, 3.0],
+    [3.0, 5.0],
+    [5.0, 1.0],
+    [5.0, 3.0],
+    [5.0, 5.0]
+  ],
+  stabilizer_positions: [
+    [0.0, 4.0],
+    [2.0, 0.0],
+    [2.0, 2.0],
+    [2.0, 4.0],
+    [4.0, 2.0],
+    [4.0, 4.0],
+    [4.0, 6.0],
+    [6.0, 2.0]
+  ],
+  stabilizer_shapes: [
+    [
+      [1.0, 5.0],
+      [0.9103606910965665, 4.995974293995239],
+      [0.8214431052013633, 4.983929588598629],
+      [0.7339631544333249, 4.963962860695853],
+      [0.6486251759186573, 4.936234870639737],
+      [0.5661162608824419, 4.900968867902419],
+      [0.48710072259409387, 4.858448793601866],
+      [0.41221474770752686, 4.8090169943749475],
+      [0.3420612740602874, 4.753071466003611],
+      [0.27720513617260845, 4.691062648986865],
+      [0.2181685175319702, 4.623489801858733],
+      [0.16542674627869747, 4.5508969814521025],
+      [0.119404468143262, 4.473868662472999],
+      [0.08047222744854943, 4.393025031653924],
+      [0.04894348370484647, 4.3090169943749475],
+      [0.02507208781817638, 4.222520933956314],
+      [0.0090502382320653, 4.134233265817656],
+      [0.0010069334586854106, 4.044864830350515],
+      [0.0010069334586852996, 3.955135169649485],
+      [0.009050238232065189, 3.8657667341823445],
+      [0.02507208781817638, 3.7774790660436857],
+      [0.04894348370484636, 3.6909830056250525],
+      [0.0804722274485492, 3.606974968346077],
+      [0.119404468143262, 3.5261313375270014],
+      [0.16542674627869725, 3.4491030185478975],
+      [0.21816851753197009, 3.3765101981412666],
+      [0.27720513617260845, 3.3089373510131352],
+      [0.3420612740602873, 3.246928533996389],
+      [0.41221474770752675, 3.1909830056250525],
+      [0.48710072259409376, 3.141551206398134],
+      [0.5661162608824417, 3.099031132097581],
+      [0.6486251759186572, 3.063765129360263],
+      [0.7339631544333247, 3.0360371393041468],
+      [0.8214431052013632, 3.0160704114013703],
+      [0.9103606910965664, 3.004025706004761],
+      [0.9999999999999999, 3.0]
+    ],
+    [
+      [1.0, 1.0],
+      [1.0040257060047608, 0.9103606910965666],
+      [1.0160704114013703, 0.8214431052013634],
+      [1.0360371393041468, 0.7339631544333249],
+      [1.0637651293602628, 0.6486251759186574],
+      [1.099031132097581, 0.5661162608824419],
+      [1.141551206398134, 0.48710072259409387],
+      [1.1909830056250525, 0.412214747707527],
+      [1.246928533996389, 0.3420612740602874],
+      [1.3089373510131352, 0.27720513617260856],
+      [1.3765101981412664, 0.2181685175319703],
+      [1.4491030185478975, 0.16542674627869736],
+      [1.5261313375270014, 0.119404468143262],
+      [1.6069749683460763, 0.08047222744854943],
+      [1.6909830056250525, 0.04894348370484647],
+      [1.7774790660436854, 0.02507208781817638],
+      [1.8657667341823445, 0.0090502382320653],
+      [1.955135169649485, 0.0010069334586854106],
+      [2.0448648303505146, 0.0010069334586852996],
+      [2.1342332658176555, 0.009050238232065189],
+      [2.2225209339563143, 0.02507208781817638],
+      [2.3090169943749475, 0.04894348370484636],
+      [2.3930250316539237, 0.08047222744854932],
+      [2.4738686624729986, 0.11940446814326189],
+      [2.5508969814521025, 0.16542674627869725],
+      [2.6234898018587334, 0.21816851753197009],
+      [2.6910626489868648, 0.27720513617260834],
+      [2.753071466003611, 0.3420612740602873],
+      [2.8090169943749475, 0.41221474770752675],
+      [2.858448793601866, 0.48710072259409376],
+      [2.900968867902419, 0.5661162608824417],
+      [2.936234870639737, 0.6486251759186572],
+      [2.9639628606958532, 0.7339631544333247],
+      [2.9839295885986297, 0.8214431052013632],
+      [2.995974293995239, 0.9103606910965664],
+      [3.0, 0.9999999999999998]
+    ],
+    [
+      [1.0, 1.0],
+      [1.0, 3.0],
+      [3.0, 1.0],
+      [3.0, 3.0]
+    ],
+    [
+      [1.0, 3.0],
+      [1.0, 5.0],
+      [3.0, 3.0],
+      [3.0, 5.0]
+    ],
+    [
+      [3.0, 1.0],
+      [3.0, 3.0],
+      [5.0, 1.0],
+      [5.0, 3.0]
+    ],
+    [
+      [3.0, 3.0],
+      [3.0, 5.0],
+      [5.0, 3.0],
+      [5.0, 5.0]
+    ],
+    [
+      [5.0, 5.0],
+      [4.995974293995239, 5.0896393089034335],
+      [4.983929588598629, 5.1785568947986365],
+      [4.963962860695854, 5.266036845566675],
+      [4.936234870639737, 5.351374824081343],
+      [4.900968867902419, 5.433883739117558],
+      [4.858448793601866, 5.512899277405906],
+      [4.8090169943749475, 5.587785252292473],
+      [4.753071466003611, 5.6579387259397125],
+      [4.691062648986865, 5.722794863827391],
+      [4.623489801858733, 5.7818314824680295],
+      [4.5508969814521025, 5.834573253721302],
+      [4.473868662472999, 5.880595531856738],
+      [4.393025031653924, 5.919527772551451],
+      [4.3090169943749475, 5.951056516295154],
+      [4.222520933956314, 5.9749279121818235],
+      [4.134233265817656, 5.990949761767935],
+      [4.044864830350515, 5.998993066541314],
+      [3.9551351696494854, 5.998993066541315],
+      [3.865766734182345, 5.990949761767935],
+      [3.7774790660436857, 5.9749279121818235],
+      [3.690983005625053, 5.951056516295154],
+      [3.606974968346077, 5.919527772551451],
+      [3.5261313375270014, 5.880595531856738],
+      [3.4491030185478975, 5.834573253721302],
+      [3.3765101981412666, 5.78183148246803],
+      [3.3089373510131352, 5.722794863827391],
+      [3.2469285339963894, 5.6579387259397125],
+      [3.1909830056250525, 5.587785252292473],
+      [3.141551206398134, 5.512899277405906],
+      [3.099031132097581, 5.433883739117558],
+      [3.063765129360263, 5.351374824081343],
+      [3.0360371393041468, 5.266036845566675],
+      [3.0160704114013703, 5.178556894798637],
+      [3.004025706004761, 5.0896393089034335],
+      [3.0, 5.0]
+    ],
+    [
+      [5.0, 1.0],
+      [5.0896393089034335, 1.0040257060047608],
+      [5.1785568947986365, 1.0160704114013703],
+      [5.266036845566675, 1.0360371393041468],
+      [5.351374824081343, 1.0637651293602628],
+      [5.433883739117558, 1.099031132097581],
+      [5.512899277405906, 1.141551206398134],
+      [5.587785252292473, 1.1909830056250525],
+      [5.6579387259397125, 1.246928533996389],
+      [5.722794863827391, 1.3089373510131352],
+      [5.7818314824680295, 1.3765101981412664],
+      [5.834573253721302, 1.4491030185478975],
+      [5.880595531856738, 1.5261313375270011],
+      [5.919527772551451, 1.6069749683460763],
+      [5.951056516295154, 1.6909830056250525],
+      [5.9749279121818235, 1.7774790660436854],
+      [5.990949761767935, 1.8657667341823443],
+      [5.998993066541314, 1.955135169649485],
+      [5.998993066541315, 2.0448648303505146],
+      [5.990949761767935, 2.1342332658176555],
+      [5.9749279121818235, 2.2225209339563143],
+      [5.951056516295154, 2.3090169943749475],
+      [5.919527772551451, 2.3930250316539237],
+      [5.880595531856738, 2.4738686624729986],
+      [5.834573253721302, 2.5508969814521025],
+      [5.78183148246803, 2.6234898018587334],
+      [5.722794863827391, 2.6910626489868648],
+      [5.6579387259397125, 2.7530714660036106],
+      [5.587785252292473, 2.8090169943749475],
+      [5.512899277405906, 2.858448793601866],
+      [5.433883739117558, 2.900968867902419],
+      [5.351374824081343, 2.936234870639737],
+      [5.266036845566675, 2.9639628606958532],
+      [5.1785568947986365, 2.9839295885986297],
+      [5.0896393089034335, 2.995974293995239],
+      [5.0, 3.0]
+    ]
+  ],
+  stabilizer_checks: [
+    [
+      [1, 'X'],
+      [2, 'X']
+    ],
+    [
+      [0, 'Z'],
+      [3, 'Z']
+    ],
+    [
+      [0, 'X'],
+      [1, 'X'],
+      [3, 'X'],
+      [4, 'X']
+    ],
+    [
+      [1, 'Z'],
+      [2, 'Z'],
+      [4, 'Z'],
+      [5, 'Z']
+    ],
+    [
+      [3, 'Z'],
+      [4, 'Z'],
+      [6, 'Z'],
+      [7, 'Z']
+    ],
+    [
+      [4, 'X'],
+      [5, 'X'],
+      [7, 'X'],
+      [8, 'X']
+    ],
+    [
+      [5, 'Z'],
+      [8, 'Z']
+    ],
+    [
+      [6, 'X'],
+      [7, 'X']
+    ]
+  ]
+})
+
+const trans_margin = 1
+const trans = computed(() => {
+  // get the max and min of the positions
+  const maxX = Math.max(
+    ...code.value.data_qubit_positions.map(([x, _]) => x),
+    ...code.value.stabilizer_positions.map(([x, _]) => x)
+  )
+  const maxY = Math.max(
+    ...code.value.data_qubit_positions.map(([_, y]) => y),
+    ...code.value.stabilizer_positions.map(([_, y]) => y)
+  )
+  const minX = Math.min(
+    ...code.value.data_qubit_positions.map(([x, _]) => x),
+    ...code.value.stabilizer_positions.map(([x, _]) => x)
+  )
+  const minY = Math.min(
+    ...code.value.data_qubit_positions.map(([_, y]) => y),
+    ...code.value.stabilizer_positions.map(([_, y]) => y)
+  )
+  console.log(maxX, maxY, minX, minY)
+  // calculate the scale
+  const scale = Math.min(1 / (maxX - minX + 2 * trans_margin), 1 / (maxY - minY + 2 * trans_margin))
+  const centerX = (maxX + minX) / 2
+  const centerY = (maxY + minY) / 2
+  return [scale, centerX, centerY]
+})
+const scale = computed(() => {
+  return trans.value[0]
+})
+
+function transform(pos: [number, number]) {
+  const [scale, centerX, centerY] = trans.value
+  const [x, y] = pos
+  return [(0.5 + scale * (x - centerX)) * width.value, (0.5 + scale * (y - centerY)) * width.value]
+}
+
+const data_qubit_radius = computed(() => {
+  return 0.5 * width.value * scale.value
+})
+
+function updateStyle() {
   document.documentElement.style.setProperty('--window-height', `${window.innerHeight}px`)
   document.documentElement.style.setProperty('--window-width', `${window.innerWidth}px`)
   document.documentElement.style.setProperty('--height', `${height.value}px`)
   document.documentElement.style.setProperty('--width', `${width.value}px`)
   document.documentElement.style.setProperty('--hs', `${height.value * 0.01}px`)
   document.documentElement.style.setProperty('--ws', `${width.value * 0.01}px`)
+  document.documentElement.style.setProperty('--radius', `${data_qubit_radius.value}px`)
 }
-watch(height, updateStyle)
+watch([height, code], updateStyle)
 updateStyle()
-
-const codeDistance = ref(3)
-const codeType = ref('rsc-depolarize-d-3')
-const decoded = ref(false)
-
-watch(codeDistance, newVal => {
-  console.log('codeDistance changed to', newVal)
-})
 </script>
 
 <template>
@@ -47,7 +340,22 @@ watch(codeDistance, newVal => {
           Matching (MWPM) decoder for general qLDPC codes
         </p>
         <div class="code">
-          <div style="width: 50%; height: 50%; background-color: blue"></div>
+          <div
+            v-for="(pos, idx) in code.data_qubit_positions"
+            :key="idx"
+            class="data-qubit"
+            :style="{
+              transform: 'translate(' + -data_qubit_radius + 'px, ' + -data_qubit_radius + 'px)',
+              borderRadius: data_qubit_radius + 'px',
+              width: 2 * data_qubit_radius + 'px',
+              height: 2 * data_qubit_radius + 'px',
+              border: data_qubit_radius * 0.2 + 'px solid black',
+              top: transform(pos)[1] + 'px',
+              left: transform(pos)[0] + 'px'
+            }"
+          >
+            X
+          </div>
         </div>
         <p v-if="!decoded">Click "Decode" to start decoding</p>
         <p v-if="decoded">Rigorously proven (<a href="" target="_blank">decoding process</a>)</p>
@@ -56,12 +364,12 @@ watch(codeDistance, newVal => {
           <!-- Code type selector -->
           <div>
             <select id="code-type" class="select" v-model="codeType">
-              <option value="rsc-bit-flip-d-3">Surface Code (Bit-Flip, d=3)</option>
-              <option value="rsc-bit-flip-d-5">Surface Code (Bit-Flip, d=5)</option>
               <option value="rsc-depolarize-d-3">Surface Code (Depolarize, d=3)</option>
               <option value="rsc-depolarize-d-5">Surface Code (Depolarize, d=5)</option>
-              <option value="rsc-y-only-d-3">Surface Code (Y-only, d=3)</option>
-              <option value="rsc-y-only-d-5">Surface Code (Y-only, d=5)</option>
+              <option value="rsc-bit-flip-d-3">Surface Code (Bit-Flip, d=3)</option>
+              <option value="rsc-bit-flip-d-5">Surface Code (Bit-Flip, d=5)</option>
+              <option value="rsc-only-y-d-3">Surface Code (Only Y, d=3)</option>
+              <option value="rsc-only-y-d-5">Surface Code (Only Y, d=5)</option>
               <option value="color-bit-flip-d-3">Color Code (Bit-Flip, d=3)</option>
               <option value="color-bit-flip-d-5">Color Code (Bit-Flip, d=5)</option>
             </select>
@@ -161,17 +469,29 @@ watch(codeDistance, newVal => {
 
 .content-placeholder p {
   font-size: calc(
-    1.5 * var(--hs)
+    1.8 * var(--hs)
   ); /* Relative to viewport height, which scales with the portrait region */
-  line-height: calc(1.6 * var(--hs));
+  line-height: calc(2 * var(--hs));
   color: #666;
 }
 
 .code {
   aspect-ratio: 1;
-  width: 100%;
-  background-color: red;
+  width: var(--width);
+  /* background-color: red; */
   margin: calc(2 * var(--hs)) auto;
+  position: relative;
+}
+
+.data-qubit {
+  position: absolute;
+  background-color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(1.3 * var(--radius));
+  color: red;
+  font-weight: bold;
 }
 
 /* GitHub icon styles */
@@ -219,8 +539,8 @@ watch(codeDistance, newVal => {
 
 .select {
   padding: calc(1 * var(--hs)) calc(1 * var(--hs));
-  height: calc(4 * var(--hs));
-  font-size: calc(1.5 * var(--hs));
+  height: calc(5 * var(--hs));
+  font-size: calc(2 * var(--hs));
   border: 1px solid #ccc;
   border-radius: calc(0.5 * var(--hs));
   background-color: white;
@@ -241,9 +561,9 @@ watch(codeDistance, newVal => {
 }
 
 .button {
-  height: calc(4 * var(--hs));
+  height: calc(5 * var(--hs));
   padding: calc(1 * var(--hs)) calc(1 * var(--hs));
-  font-size: calc(1.5 * var(--hs));
+  font-size: calc(2 * var(--hs));
   border-radius: calc(0.5 * var(--hs));
   color: black;
   cursor: pointer;
