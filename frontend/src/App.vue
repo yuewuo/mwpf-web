@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, type Ref } from 'vue'
+import { computed, ref, watch, type Ref, onBeforeUnmount, onMounted } from 'vue'
 
 const height = ref(0) // the height of the portrait region
 const aspectRatio = 1.618
@@ -307,7 +307,6 @@ const trans = computed(() => {
     ...code.value.data_qubit_positions.map(([_, y]) => y),
     ...code.value.stabilizer_positions.map(([_, y]) => y)
   )
-  console.log(maxX, maxY, minX, minY)
   // calculate the scale
   const scale = Math.min(1 / (maxX - minX + 2 * trans_margin), 1 / (maxY - minY + 2 * trans_margin))
   const centerX = (maxX + minX) / 2
@@ -344,19 +343,41 @@ const downDataQubitIdx = ref<number | null>(null)
 
 function mouseDown(event: MouseEvent | TouchEvent, idx: number) {
   downDataQubitIdx.value = idx
+  downErrorAction.value = null
+  event.preventDefault()
 }
 
 function randomizeError(idx: number) {
+  if (downDataQubitIdx.value == idx) {
+    console.log('randomized_error', idx)
+  }
   downDataQubitIdx.value = null
 }
 
-document.addEventListener('mouseup', function (event) {
-  downDataQubitIdx.value = null
+function globalMouseUp(event: MouseEvent) {
+  if (downDataQubitIdx.value !== null && downErrorAction.value !== null) {
+    console.log(downErrorAction.value, downDataQubitIdx.value)
+    downDataQubitIdx.value = null
+  }
+}
+onMounted(() => {
+  document.addEventListener('mouseup', globalMouseUp)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('mouseup', globalMouseUp)
 })
 
-watch(downDataQubitIdx, idx => {
-  console.log('data qubit', idx)
-})
+const ERROR_ACTION_DIS_RATIO = 3
+
+const downErrorAction = ref<string | null>(null)
+
+function mouseEnterErrorAction(errorType: string) {
+  downErrorAction.value = errorType
+}
+
+function mouseLeaveErrorAction() {
+  downErrorAction.value = null
+}
 </script>
 
 <template>
@@ -384,9 +405,8 @@ watch(downDataQubitIdx, idx => {
           <div
             v-for="(pos, idx) in code.stabilizer_positions"
             :key="idx"
-            class="qubit non-selectable"
+            class="qubit stabilizer-qubit non-selectable"
             :style="{
-              transform: 'translate(' + -data_qubit_radius + 'px, ' + -data_qubit_radius + 'px)',
               borderRadius: data_qubit_radius + 'px',
               width: 2 * data_qubit_radius + 'px',
               height: 2 * data_qubit_radius + 'px',
@@ -401,7 +421,6 @@ watch(downDataQubitIdx, idx => {
             :key="idx"
             class="qubit data-qubit"
             :style="{
-              transform: 'translate(' + -data_qubit_radius + 'px, ' + -data_qubit_radius + 'px)',
               borderRadius: data_qubit_radius + 'px',
               width: 2 * data_qubit_radius + 'px',
               height: 2 * data_qubit_radius + 'px',
@@ -413,10 +432,87 @@ watch(downDataQubitIdx, idx => {
             @mousedown="mouseDown($event, idx)"
             @mouseup="randomizeError(idx)"
             @touchend="randomizeError(idx)"
-            @mouseenter="console.log('mouseenter', idx)"
-            @mouseleave="console.log('mouseleave', idx)"
           >
             <span class="non-selectable">X</span>
+          </div>
+          <!-- Error actions -->
+          <div v-if="downDataQubitIdx !== null" class="error-actions">
+            <!-- I error button (top) -->
+            <button
+              class="error-button error-i"
+              :style="{
+                top:
+                  transform(code.data_qubit_positions[downDataQubitIdx])[0] -
+                  data_qubit_radius * ERROR_ACTION_DIS_RATIO +
+                  'px',
+                left: transform(code.data_qubit_positions[downDataQubitIdx])[1] + 'px',
+                width: ERROR_ACTION_DIS_RATIO * data_qubit_radius + 'px',
+                height: ERROR_ACTION_DIS_RATIO * data_qubit_radius + 'px',
+                fontSize: ERROR_ACTION_DIS_RATIO * 0.7 * data_qubit_radius + 'px'
+              }"
+              @mouseenter="mouseEnterErrorAction('I')"
+              @mouseleave="mouseLeaveErrorAction"
+            >
+              <span class="non-selectable">I</span>
+            </button>
+
+            <!-- X error button (right) -->
+            <button
+              class="error-button error-x"
+              :style="{
+                top: transform(code.data_qubit_positions[downDataQubitIdx])[0] + 'px',
+                left:
+                  transform(code.data_qubit_positions[downDataQubitIdx])[1] +
+                  data_qubit_radius * ERROR_ACTION_DIS_RATIO +
+                  'px',
+                width: ERROR_ACTION_DIS_RATIO * data_qubit_radius + 'px',
+                height: ERROR_ACTION_DIS_RATIO * data_qubit_radius + 'px',
+                fontSize: ERROR_ACTION_DIS_RATIO * 0.7 * data_qubit_radius + 'px'
+              }"
+              @mouseenter="mouseEnterErrorAction('X')"
+              @mouseleave="mouseLeaveErrorAction"
+            >
+              <span class="non-selectable">X</span>
+            </button>
+
+            <!-- Y error button (bottom) -->
+            <button
+              class="error-button error-y"
+              :style="{
+                top:
+                  transform(code.data_qubit_positions[downDataQubitIdx])[0] +
+                  data_qubit_radius * ERROR_ACTION_DIS_RATIO +
+                  'px',
+                left: transform(code.data_qubit_positions[downDataQubitIdx])[1] + 'px',
+                width: ERROR_ACTION_DIS_RATIO * data_qubit_radius + 'px',
+                height: ERROR_ACTION_DIS_RATIO * data_qubit_radius + 'px',
+                fontSize: ERROR_ACTION_DIS_RATIO * 0.7 * data_qubit_radius + 'px'
+              }"
+              @mouseenter="mouseEnterErrorAction('Y')"
+              @mouseleave="mouseLeaveErrorAction"
+            >
+              <span class="non-selectable">Y</span>
+            </button>
+
+            <!-- Z error button (left) -->
+            <button
+              class="error-button error-z"
+              :style="{
+                top: transform(code.data_qubit_positions[downDataQubitIdx])[0] + 'px',
+                left:
+                  transform(code.data_qubit_positions[downDataQubitIdx])[1] -
+                  data_qubit_radius * ERROR_ACTION_DIS_RATIO +
+                  'px',
+                width: ERROR_ACTION_DIS_RATIO * data_qubit_radius + 'px',
+                height: ERROR_ACTION_DIS_RATIO * data_qubit_radius + 'px',
+                fontSize: ERROR_ACTION_DIS_RATIO * 0.7 * data_qubit_radius + 'px'
+              }"
+              @mouseenter="mouseEnterErrorAction('Z')"
+              @mouseleave="mouseLeaveErrorAction"
+              v-if="1 == 2"
+            >
+              <span class="non-selectable">Z</span>
+            </button>
           </div>
         </div>
         <p v-if="!decoded">Click "Decode" to start decoding</p>
@@ -554,6 +650,10 @@ watch(downDataQubitIdx, idx => {
   font-size: calc(1.3 * var(--radius));
   color: red;
   font-weight: bold;
+}
+
+.stabilizer-qubit {
+  transform: translate(-50%, -50%);
 }
 
 /* Data qubit specific styles */
@@ -785,5 +885,76 @@ watch(downDataQubitIdx, idx => {
   border-color: #e0e0e0;
   transform: none;
   box-shadow: none;
+}
+
+.error-actions {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.error-button {
+  position: absolute;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  pointer-events: auto;
+  box-shadow: 0 calc(0.2 * var(--radius)) calc(0.4 * var(--radius)) rgba(0, 0, 0, 0.3);
+  transform: translate(-50%, -50%);
+}
+
+.error-button:hover {
+  transform: translate(-50%, -50%) scale(1.2);
+  box-shadow: 0 calc(0.3 * var(--radius)) calc(0.6 * var(--radius)) rgba(0, 0, 0, 0.4);
+}
+
+.error-button:active {
+  transform: translate(-50%, -50%) scale(0.95);
+}
+
+/* I error button (Identity - no error) */
+.error-i {
+  background: linear-gradient(135deg, #4caf50, #45a049);
+}
+
+.error-i:hover {
+  background: linear-gradient(135deg, #45a049, #3d8b40);
+}
+
+/* X error button (Bit flip) */
+.error-x {
+  background: linear-gradient(135deg, #f44336, #d32f2f);
+}
+
+.error-x:hover {
+  background: linear-gradient(135deg, #d32f2f, #b71c1c);
+}
+
+/* Y error button (Bit and phase flip) */
+.error-y {
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+}
+
+.error-y:hover {
+  background: linear-gradient(135deg, #f57c00, #e65100);
+}
+
+/* Z error button (Phase flip) */
+.error-z {
+  background: linear-gradient(135deg, #2196f3, #1976d2);
+}
+
+.error-z:hover {
+  background: linear-gradient(135deg, #1976d2, #1565c0);
 }
 </style>
