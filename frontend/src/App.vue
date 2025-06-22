@@ -515,7 +515,7 @@ watch(code.value, () => {
             <div
               v-for="([data_idx, check_type], check_idx) in check"
               :key="check_idx"
-              class="stabilizer-check"
+              class="stabilizer-check non-selectable"
               :style="{
                 top: stabilizerCheckPosition(stabilizer_idx, data_idx)[0] + 'px',
                 left: stabilizerCheckPosition(stabilizer_idx, data_idx)[1] + 'px'
@@ -567,6 +567,7 @@ watch(code.value, () => {
               height="800px"
               viewBox="0 0 256 256"
               xmlns="http://www.w3.org/2000/svg"
+              class="non-selectable"
             >
               <g fill-rule="evenodd">
                 <path
