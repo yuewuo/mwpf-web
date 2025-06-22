@@ -28,6 +28,7 @@ interface Code {
   stabilizer_positions: [number, number][]
   stabilizer_shapes: [number, number][][]
   stabilizer_checks: [number, string][][] // (data_qubit_index, check_type)
+  stabilizer_colors: string[]
 }
 
 const code: Ref<Code> = ref({
@@ -135,26 +136,26 @@ const code: Ref<Code> = ref({
     [
       [1.0, 1.0],
       [1.0, 3.0],
-      [3.0, 1.0],
-      [3.0, 3.0]
+      [3.0, 3.0],
+      [3.0, 1.0]
     ],
     [
       [1.0, 3.0],
       [1.0, 5.0],
-      [3.0, 3.0],
-      [3.0, 5.0]
+      [3.0, 5.0],
+      [3.0, 3.0]
     ],
     [
       [3.0, 1.0],
       [3.0, 3.0],
-      [5.0, 1.0],
-      [5.0, 3.0]
+      [5.0, 3.0],
+      [5.0, 1.0]
     ],
     [
       [3.0, 3.0],
       [3.0, 5.0],
-      [5.0, 3.0],
-      [5.0, 5.0]
+      [5.0, 5.0],
+      [5.0, 3.0]
     ],
     [
       [5.0, 5.0],
@@ -274,6 +275,16 @@ const code: Ref<Code> = ref({
       [6, 'X'],
       [7, 'X']
     ]
+  ],
+  stabilizer_colors: [
+    '#e8f0ff',
+    '#e8f5e8',
+    '#e8f0ff',
+    '#e8f5e8',
+    '#e8f5e8',
+    '#e8f0ff',
+    '#e8f5e8',
+    '#e8f0ff'
   ]
 })
 
@@ -314,7 +325,7 @@ function transform(pos: [number, number]) {
 }
 
 const data_qubit_radius = computed(() => {
-  return 0.5 * width.value * scale.value
+  return 0.4 * width.value * scale.value
 })
 
 function updateStyle() {
@@ -340,18 +351,42 @@ updateStyle()
           Matching (MWPM) decoder for general qLDPC codes
         </p>
         <div class="code">
+          <!-- Stabilizer shapes -->
+          <svg v-for="(shape, idx) in code.stabilizer_shapes" :key="idx" class="stabilizer-shape">
+            <polygon
+              :points="shape.map(([x, y]) => transform([y, x])).join(' ')"
+              :fill="code.stabilizer_colors[idx]"
+            />
+          </svg>
+          <!-- Stabilizer checks-->
+          <!-- Stabilizers -->
+          <div
+            v-for="(pos, idx) in code.stabilizer_positions"
+            :key="idx"
+            class="qubit"
+            :style="{
+              transform: 'translate(' + -data_qubit_radius + 'px, ' + -data_qubit_radius + 'px)',
+              borderRadius: data_qubit_radius + 'px',
+              width: 2 * data_qubit_radius + 'px',
+              height: 2 * data_qubit_radius + 'px',
+              border: data_qubit_radius * 0.2 + 'px solid lightgray',
+              top: transform(pos)[0] + 'px',
+              left: transform(pos)[1] + 'px'
+            }"
+          ></div>
+          <!-- Data qubits -->
           <div
             v-for="(pos, idx) in code.data_qubit_positions"
             :key="idx"
-            class="data-qubit"
+            class="qubit"
             :style="{
               transform: 'translate(' + -data_qubit_radius + 'px, ' + -data_qubit_radius + 'px)',
               borderRadius: data_qubit_radius + 'px',
               width: 2 * data_qubit_radius + 'px',
               height: 2 * data_qubit_radius + 'px',
               border: data_qubit_radius * 0.2 + 'px solid black',
-              top: transform(pos)[1] + 'px',
-              left: transform(pos)[0] + 'px'
+              top: transform(pos)[0] + 'px',
+              left: transform(pos)[1] + 'px'
             }"
           >
             X
@@ -479,11 +514,11 @@ updateStyle()
   aspect-ratio: 1;
   width: var(--width);
   /* background-color: red; */
-  margin: calc(2 * var(--hs)) auto;
+  /* margin: calc(2 * var(--hs)) auto; */
   position: relative;
 }
 
-.data-qubit {
+.qubit {
   position: absolute;
   background-color: white;
   display: flex;
@@ -492,6 +527,14 @@ updateStyle()
   font-size: calc(1.3 * var(--radius));
   color: red;
   font-weight: bold;
+}
+
+.stabilizer-shape {
+  position: absolute;
+  width: var(--width);
+  height: var(--width);
+  top: 0;
+  left: 0;
 }
 
 /* GitHub icon styles */

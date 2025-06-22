@@ -10,6 +10,7 @@ pub struct Code {
     pub stabilizer_positions: Vec<(f64, f64)>,
     pub stabilizer_shapes: Vec<Vec<(f64, f64)>>,
     pub stabilizer_checks: Vec<Vec<(usize, String)>>, // (data_qubit_index, check_type)
+    pub stabilizer_colors: Vec<String>,
 }
 
 #[derive(Default)]
@@ -19,6 +20,10 @@ pub enum NoiseType {
     BitFlip,
     OnlyY,
 }
+
+const RED: &str = "#ffe8e8";
+const GREEN: &str = "#e8f5e8";
+const BLUE: &str = "#e8f0ff";
 
 impl NoiseType {
     pub fn has_error(&self, error_type: &str) -> bool {
@@ -158,7 +163,7 @@ impl RotatedSurfaceCode {
                     continue;
                 }
                 let mut flipped_stabilizers = vec![];
-                for (di, dj) in [(-1, -1), (-1, 1), (1, -1), (1, 1)] {
+                for (di, dj) in [(-1, -1), (-1, 1), (1, 1), (1, -1)] {
                     let i2 = (i as isize + di) as usize;
                     let j2 = (j as isize + dj) as usize;
                     if self.is_stabilizer(i2, j2) {
@@ -178,7 +183,7 @@ impl RotatedSurfaceCode {
         let mut checks = vec![];
         for (stabilizer_idx, (i, j)) in self.stabilizer_positions.iter().cloned().enumerate() {
             let mut check = vec![];
-            for (di, dj) in [(-1, -1), (-1, 1), (1, -1), (1, 1)] {
+            for (di, dj) in [(-1, -1), (-1, 1), (1, 1), (1, -1)] {
                 if (i as isize + di) < 0 || (j as isize + dj) < 0 {
                     continue;
                 }
@@ -248,6 +253,18 @@ impl RotatedSurfaceCode {
         }
         shapes
     }
+
+    fn stabilizer_colors(&self) -> Vec<String> {
+        let mut colors = vec![];
+        for (i, j) in self.stabilizer_positions.iter().cloned() {
+            colors.push(if self.is_z_stabilizer(i, j) {
+                GREEN.to_string()
+            } else {
+                BLUE.to_string()
+            });
+        }
+        colors
+    }
 }
 
 impl From<&RotatedSurfaceCode> for Code {
@@ -264,6 +281,7 @@ impl From<&RotatedSurfaceCode> for Code {
                 .collect(),
             stabilizer_shapes: code.stabilizer_shapes(),
             stabilizer_checks: code.stabilizer_checks(),
+            stabilizer_colors: code.stabilizer_colors(),
         }
     }
 }
