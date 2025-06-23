@@ -22,6 +22,7 @@ pub struct ClientCodeInfo {
     pub stabilizer_shapes: Vec<Vec<(f64, f64)>>,
     pub stabilizer_checks: Vec<Vec<(usize, String)>>, // (data_qubit_index, check_type)
     pub stabilizer_colors: Vec<String>,
+    pub logical_observables: Vec<Vec<(usize, String)>>, // (data_qubit_index, check_type)
 }
 
 impl ClientCodeInfo {
@@ -32,9 +33,9 @@ impl ClientCodeInfo {
         for (data_index, actions) in self.data_qubit_actions.iter().enumerate() {
             for (error_type, syndrome) in actions.iter() {
                 let hyperedge = BTreeSet::from_iter(syndrome.iter().cloned());
-                if !hyperedges.contains_key(&hyperedge) {
-                    hyperedges.insert(hyperedge, (data_index, error_type.clone()));
-                }
+                hyperedges
+                    .entry(hyperedge)
+                    .or_insert_with(|| (data_index, error_type.clone()));
             }
         }
         // construct weighted edges
@@ -159,17 +160,17 @@ impl RotatedSurfaceCode {
         let is_stabilizer = self.is_qubit(i, j) && i % 2 == 0;
         if matches!(self.noise_type, NoiseType::BitFlip) {
             // only add Z stabilizers for bit-flip noise
-            return is_stabilizer && (i + j) % 4 == 2;
+            return is_stabilizer && (i + j) % 4 == 0;
         }
         is_stabilizer
     }
 
     pub fn is_z_stabilizer(&self, i: usize, j: usize) -> bool {
-        self.is_stabilizer(i, j) && (i + j) % 4 == 2
+        self.is_stabilizer(i, j) && (i + j) % 4 == 0
     }
 
     pub fn is_x_stabilizer(&self, i: usize, j: usize) -> bool {
-        self.is_stabilizer(i, j) && (i + j) % 4 == 0
+        self.is_stabilizer(i, j) && (i + j) % 4 == 2
     }
 
     fn init_data_qubit_positions(&mut self) {
@@ -315,6 +316,20 @@ impl RotatedSurfaceCode {
 
 impl From<&RotatedSurfaceCode> for ServerCodeInfo {
     fn from(code: &RotatedSurfaceCode) -> Self {
+        // Z logical observables
+        let mut z_observable = vec![];
+        for i in 0..(2 * code.d + 1) {
+            if code.is_data_qubit(i, 1) {
+                z_observable.push((code.position_to_data_qubit[&(i, 1)], "Z".to_string()));
+            }
+        }
+        // X logical observables
+        let mut x_observable: Vec<(usize, String)> = vec![];
+        for j in 0..(2 * code.d + 1) {
+            if code.is_data_qubit(j, 1) {
+                x_observable.push((code.position_to_data_qubit[&(1, j)], "X".to_string()));
+            }
+        }
         let client_info = ClientCodeInfo {
             id: format!("rsc-{}-d-{}", code.noise_type, code.d),
             name: format!("Surface Code ({:?}, d={})", code.noise_type, code.d),
@@ -329,6 +344,7 @@ impl From<&RotatedSurfaceCode> for ServerCodeInfo {
             stabilizer_checks: code.stabilizer_checks(),
             stabilizer_colors: code.stabilizer_colors(),
             data_qubit_actions: code.data_qubit_actions.clone(),
+            logical_observables: vec![z_observable, x_observable],
         };
         let (solver_initializer, edge_errors) = client_info.construct_graph();
         let visualize_positions = client_info

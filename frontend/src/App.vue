@@ -38,6 +38,7 @@ interface Code {
   stabilizer_shapes: [number, number][][]
   stabilizer_checks: [number, string][][] // (data_qubit_index, check_type)
   stabilizer_colors: string[]
+  logical_observables: [number, string][][] // (data_qubit_index, check_type)
   errors?: Map<number, string>
   decoded?: Decoded
 }
@@ -319,6 +320,59 @@ watchEffect(() => {
   }
   syndrome.value = new_syndrome
 })
+
+function pauli_product(pauli1: string, pauli2: string): string {
+  if (pauli1 === 'I') return pauli2
+  if (pauli2 === 'I') return pauli1
+  if (pauli1 === pauli2) return 'I'
+  if (pauli1 === 'X' && pauli2 === 'Y') return 'Z'
+  if (pauli1 === 'Y' && pauli2 === 'X') return 'Z'
+  if (pauli1 === 'Y' && pauli2 === 'Z') return 'X'
+  if (pauli1 === 'Z' && pauli2 === 'Y') return 'X'
+  if (pauli1 === 'Z' && pauli2 === 'X') return 'Y'
+  if (pauli1 === 'X' && pauli2 === 'Z') return 'Y'
+  console.error(pauli1, pauli2)
+  return 'I' // Should never reach here
+}
+
+function pauli_is_anti_commuting(pauli1: string, pauli2: string): boolean {
+  if (pauli1 === 'I') return false
+  if (pauli2 === 'I') return false
+  if (pauli1 === pauli2) return false
+  return true
+}
+
+const is_logical_error = computed(() => {
+  if (code.value.decoded == null) {
+    return false
+  }
+  // compute residual error
+  const residual_error = new Map<number, string>()
+  for (const [data_idx, error_type] of code.value.errors ?? []) {
+    residual_error.set(data_idx, error_type)
+  }
+  for (const [data_idx, error_type] of code.value.decoded.correction) {
+    if (residual_error.has(data_idx)) {
+      residual_error.set(data_idx, pauli_product(residual_error.get(data_idx)!, error_type))
+    } else {
+      residual_error.set(data_idx, error_type)
+    }
+  }
+  // check if any logical observable anti-commutes with the residual error
+  for (const observable of code.value.logical_observables) {
+    let parity = false
+    for (const [data_idx, obs_type] of observable) {
+      const error_type = residual_error.get(data_idx) ?? 'I'
+      if (pauli_is_anti_commuting(obs_type, error_type)) {
+        parity = !parity
+      }
+    }
+    if (parity) {
+      return true
+    }
+  }
+  return false
+})
 </script>
 
 <template>
@@ -430,7 +484,7 @@ watchEffect(() => {
             ></div>
             <div
               v-if="code.decoded && correction_map.get(idx) != null"
-              class="qubit correction-text"
+              class="qubit correction-text non-selectable"
               :style="{
                 top: transform(pos)[0] - data_qubit_radius * 1 + 'px',
                 left: transform(pos)[1] + data_qubit_radius * 1 + 'px',
@@ -562,7 +616,17 @@ watchEffect(() => {
             </button>
           </div>
         </div>
-        <div style="height: calc(10 * var(--hs))"></div>
+
+        <div
+          style="
+            height: calc(10 * var(--hs));
+            margin-top: calc(2 * var(--hs));
+            font-size: calc(3 * var(--hs));
+            color: red;
+          "
+        >
+          {{ is_logical_error ? 'Logical Error!' : '' }}
+        </div>
       </div>
 
       <!-- GitHub icon in bottom-left corner -->
@@ -679,6 +743,7 @@ watchEffect(() => {
 .correction-border {
   animation: rotate-border 10s linear infinite;
   --border-width: calc(0.2 * var(--radius));
+  background-color: rgba(255, 255, 155, 0.8);
 }
 
 .correction-text {
