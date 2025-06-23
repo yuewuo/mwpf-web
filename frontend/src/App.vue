@@ -654,18 +654,29 @@ async function decodeShowHTML() {
             height: calc(10 * var(--hs));
             margin-top: calc(2 * var(--hs));
             font-size: calc(3 * var(--hs));
-            color: red;
           "
         >
           <span
-            v-if="is_logical_error"
+            v-if="code.decoded != null && is_logical_error"
             style="
               background-color: rgba(255, 255, 155, 0.8);
               font-weight: bold;
               padding: calc(1 * var(--hs)) calc(2 * var(--hs));
               border-radius: calc(2 * var(--hs));
+              color: red;
             "
             >Logical Error!</span
+          >
+          <span
+            v-if="code.decoded != null && !is_logical_error"
+            style="
+              background-color: rgba(255, 255, 155, 0.8);
+              font-weight: bold;
+              padding: calc(1 * var(--hs)) calc(2 * var(--hs));
+              border-radius: calc(2 * var(--hs));
+              color: green;
+            "
+            >Correction Succeed!</span
           >
         </div>
       </div>
