@@ -253,7 +253,7 @@ const decoding = ref(false)
 
 const syndrome = ref<Set<number>>(new Set())
 
-async function decode() {
+async function decode(with_html: boolean = false) {
   if (syndrome.value.size === 0) {
     decoded.value = {
       correction: [],
@@ -271,7 +271,11 @@ async function decode() {
     const syndromeString = Array.from(syndrome.value).join(',')
 
     // Send GET request to backend
-    const response = await fetch(`/api/decode?code_id=${code.value.id}&syndrome=${syndromeString}`)
+    let url = `/api/decode?code_id=${code.value.id}&syndrome=${syndromeString}`
+    if (with_html) {
+      url += '&with_html=true'
+    }
+    const response = await fetch(url)
 
     if (!response.ok) {
       throw new Error(await response.text())
@@ -288,6 +292,18 @@ async function decode() {
     decoding.value = false
   }
 }
+
+const correction_map: ComputedRef<Map<number, string>> = computed(() => {
+  console.log(decoded.value)
+  const map = new Map<number, string>()
+  if (decoded.value != null) {
+    for (const [data_idx, error_type] of decoded.value.correction) {
+      map.set(data_idx, error_type)
+    }
+  }
+  console.log(map)
+  return map
+})
 
 watchEffect(() => {
   const errors = code.value.errors
@@ -401,6 +417,24 @@ watchEffect(() => {
               </g>
             </svg>
           </div>
+          <!-- Correction -->
+          <div v-for="(pos, idx) in code.data_qubit_positions" :key="idx">
+            <div
+              v-if="decoded && correction_map.get(idx) != null"
+              class="qubit correction"
+              :style="{
+                borderRadius: data_qubit_radius + 'px',
+                width: 1.7 * data_qubit_radius + 'px',
+                height: 1.7 * data_qubit_radius + 'px',
+                border: data_qubit_radius * 0.2 + 'px dotted green',
+                top: transform(pos)[0] - data_qubit_radius * 1 + 'px',
+                left: transform(pos)[1] + data_qubit_radius * 1 + 'px',
+                color: 'darkgreen'
+              }"
+            >
+              {{ correction_map.get(idx) }}
+            </div>
+          </div>
           <!-- Error actions -->
           <div v-if="downDataQubitIdx !== null" class="error-actions">
             <!-- I error button (top) -->
@@ -484,7 +518,9 @@ watchEffect(() => {
             </button>
           </div>
         </div>
-        <p v-if="!decoded && !decoding">Click "Decode" to start decoding</p>
+        <p v-if="!decoded && !decoding">
+          Press data qubits to add errors, then click "Decode" to find a correction
+        </p>
         <p v-if="decoding">Decoding...</p>
         <p v-if="decoded">
           <span v-if="decoded.upper == 0">Empty correction</span>
@@ -632,6 +668,10 @@ watchEffect(() => {
 }
 
 .stabilizer-qubit {
+  transform: translate(-50%, -50%);
+}
+
+.correction {
   transform: translate(-50%, -50%);
 }
 
