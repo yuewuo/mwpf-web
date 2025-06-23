@@ -625,7 +625,16 @@ const is_logical_error = computed(() => {
             color: red;
           "
         >
-          {{ is_logical_error ? 'Logical Error!' : '' }}
+          <span
+            v-if="is_logical_error"
+            style="
+              background-color: rgba(255, 255, 155, 0.8);
+              font-weight: bold;
+              padding: calc(1 * var(--hs)) calc(2 * var(--hs));
+              border-radius: calc(2 * var(--hs));
+            "
+            >Logical Error!</span
+          >
         </div>
       </div>
 
@@ -712,7 +721,7 @@ const is_logical_error = computed(() => {
 
 .content-placeholder p {
   font-size: calc(
-    1.8 * var(--hs)
+    2 * var(--hs)
   ); /* Relative to viewport height, which scales with the portrait region */
   line-height: calc(2 * var(--hs));
   color: #666;
