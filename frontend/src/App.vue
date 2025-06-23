@@ -39,6 +39,7 @@ interface Code {
   stabilizer_checks: [number, string][][] // (data_qubit_index, check_type)
   stabilizer_colors: string[]
   errors?: Map<number, string>
+  decoded?: Decoded
 }
 
 const defaultCode: Reactive<Code> = reactive({
@@ -123,7 +124,7 @@ function mouseDown(idx: number) {
 function randomizeError(idx: number) {
   if (downDataQubitIdx.value == idx) {
     // console.log('randomize error on data qubit ', idx)
-    decoded.value = null
+    code.value.decoded = undefined
     if (code.value.errors == null) {
       code.value.errors = new Map()
     }
@@ -141,7 +142,7 @@ const dataQubits = ref<HTMLDivElement[]>([])
 
 function globalMouseUp(event: MouseEvent | TouchEvent) {
   if (downDataQubitIdx.value !== null && downErrorAction.value !== null) {
-    decoded.value = null
+    code.value.decoded = undefined
     if (code.value.errors == null) {
       code.value.errors = new Map()
     }
@@ -237,7 +238,7 @@ onBeforeUnmount(() => {
 
 function reset() {
   code.value.errors = undefined
-  decoded.value = null
+  code.value.decoded = undefined
 }
 
 interface Decoded {
@@ -248,14 +249,13 @@ interface Decoded {
   html?: string
 }
 
-const decoded: Ref<Decoded | null> = ref(null)
 const decoding = ref(false)
 
 const syndrome = ref<Set<number>>(new Set())
 
 async function decode(with_html: boolean = false) {
   if (syndrome.value.size === 0) {
-    decoded.value = {
+    code.value.decoded = {
       correction: [],
       lower: 0,
       upper: 0
@@ -264,7 +264,7 @@ async function decode(with_html: boolean = false) {
   }
 
   decoding.value = true
-  decoded.value = null
+  code.value.decoded = undefined
 
   try {
     // Convert syndrome Set to comma-separated string
@@ -282,9 +282,8 @@ async function decode(with_html: boolean = false) {
     }
 
     const data = await response.json()
-    console.log(data)
 
-    decoded.value = data
+    code.value.decoded = data
   } catch (error) {
     console.error(error)
     alert('Decoding error: ' + (error as Error).message)
@@ -294,14 +293,12 @@ async function decode(with_html: boolean = false) {
 }
 
 const correction_map: ComputedRef<Map<number, string>> = computed(() => {
-  console.log(decoded.value)
   const map = new Map<number, string>()
-  if (decoded.value != null) {
-    for (const [data_idx, error_type] of decoded.value.correction) {
+  if (code.value.decoded != null) {
+    for (const [data_idx, error_type] of code.value.decoded.correction) {
       map.set(data_idx, error_type)
     }
   }
-  console.log(map)
   return map
 })
 
@@ -420,13 +417,21 @@ watchEffect(() => {
           <!-- Correction -->
           <div v-for="(pos, idx) in code.data_qubit_positions" :key="idx">
             <div
-              v-if="decoded && correction_map.get(idx) != null"
-              class="qubit correction"
+              v-if="code.decoded && correction_map.get(idx) != null"
+              class="qubit correction-border"
               :style="{
                 borderRadius: data_qubit_radius + 'px',
                 width: 1.7 * data_qubit_radius + 'px',
                 height: 1.7 * data_qubit_radius + 'px',
-                border: data_qubit_radius * 0.2 + 'px dotted green',
+                top: transform(pos)[0] - data_qubit_radius * 1 + 'px',
+                left: transform(pos)[1] + data_qubit_radius * 1 + 'px',
+                color: 'darkgreen'
+              }"
+            ></div>
+            <div
+              v-if="code.decoded && correction_map.get(idx) != null"
+              class="qubit correction-text"
+              :style="{
                 top: transform(pos)[0] - data_qubit_radius * 1 + 'px',
                 left: transform(pos)[1] + data_qubit_radius * 1 + 'px',
                 color: 'darkgreen'
@@ -518,30 +523,30 @@ watchEffect(() => {
             </button>
           </div>
         </div>
-        <p v-if="!decoded && !decoding">
+        <p v-if="!code.decoded && !decoding">
           Press data qubits to add errors, then click "Decode" to find a correction
         </p>
         <p v-if="decoding">Decoding...</p>
-        <p v-if="decoded">
-          <span v-if="decoded.upper == 0">Empty correction</span>
-          <span v-else-if="decoded.lower >= decoded.upper - 1"
+        <p v-if="code.decoded">
+          <span v-if="code.decoded.upper == 0">Empty correction</span>
+          <span v-else-if="code.decoded.lower >= code.decoded.upper - 1"
             >Found optimal Most-Likely Error (MLE)</span
           >
           <span v-else
-            >Rigorously proven: {{ decoded.lower }} ≤ weight(MWPF) ≤ {{ decoded.upper }}
+            >Rigorously proven: {{ code.decoded.lower }} ≤ weight(MWPF) ≤ {{ code.decoded.upper }}
           </span>
-          <span v-if="decoded.upper != 0">
+          <span v-if="code.decoded.upper != 0">
             (<a href="" target="_blank">see decoding process</a>)</span
           >
         </p>
 
         <div class="controller-panel">
           <div>
-            <button class="button reset-button" @click="reset">Reset</button>
+            <button class="button reset-button" @click="reset" :disabled="decoding">Reset</button>
           </div>
           <!-- Code type selector -->
           <div>
-            <select id="code-type" class="select" v-model="codeIndex">
+            <select id="code-type" class="select" v-model="codeIndex" :disabled="decoding">
               <option v-for="(code, codeIndex) in codes" :key="code.id" :value="codeIndex">
                 {{ code.name }}
               </option>
@@ -550,8 +555,8 @@ watchEffect(() => {
           <div>
             <button
               class="button decode-button"
-              @click="decode"
-              :disabled="decoding || decoded != null"
+              @click="() => decode()"
+              :disabled="decoding || code.decoded != null"
             >
               {{ decoding ? 'Decoding...' : 'Decode' }}
             </button>
@@ -671,8 +676,41 @@ watchEffect(() => {
   transform: translate(-50%, -50%);
 }
 
-.correction {
+.correction-border {
+  animation: rotate-border 10s linear infinite;
+  --border-width: calc(0.2 * var(--radius));
+}
+
+.correction-text {
   transform: translate(-50%, -50%);
+}
+
+@keyframes rotate-border {
+  0% {
+    border: var(--border-width) dotted green;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  25% {
+    border: var(--border-width) dotted #00ff00;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) rotate(90deg);
+  }
+  50% {
+    border: var(--border-width) dotted #00cc00;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) rotate(180deg);
+  }
+  75% {
+    border: var(--border-width) dotted #009900;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) rotate(270deg);
+  }
+  100% {
+    border: var(--border-width) dotted green;
+    border-radius: 50%;
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }
 
 /* Data qubit specific styles */
