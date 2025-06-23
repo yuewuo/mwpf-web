@@ -191,8 +191,8 @@ lazy_static! {
             ServerCodeInfo::from(&RotatedSurfaceCode::new(5, NoiseType::BitFlip)),
             ServerCodeInfo::from(&RotatedSurfaceCode::new(3, NoiseType::OnlyY)),
             ServerCodeInfo::from(&RotatedSurfaceCode::new(5, NoiseType::OnlyY)),
-            // ServerCodeInfo::from(&ColorCode::new(3)),
-            // ServerCodeInfo::from(&ColorCode::new(5)),
+            ServerCodeInfo::from(&TriangularColorCodeBitFlip::new(3)),
+            ServerCodeInfo::from(&TriangularColorCodeBitFlip::new(5)),
         ]
     };
     static ref CODES_MAP: HashMap<String, ServerCodeInfo> = {

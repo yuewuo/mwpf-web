@@ -427,7 +427,7 @@ async function decodeShowHTML() {
             <polygon
               v-for="(shape, idx) in code.stabilizer_shapes"
               :key="idx"
-              :points="shape.map(([x, y]) => transform([y, x])).join(' ')"
+              :points="shape.map(([x, y]) => transform([x, y]).reverse()).join(' ')"
               :fill="code.stabilizer_colors[idx]"
               class="non-selectable"
             />
@@ -746,7 +746,7 @@ async function decodeShowHTML() {
           />
           <button
             style="
-              padding: calc(2 * var(--hs)) calc(4 * var(--hs));
+              padding: calc(2 * var(--hs)) calc(2 * var(--hs));
               font-size: calc(2 * var(--hs));
               background-color: grey;
               color: white;
@@ -761,7 +761,7 @@ async function decodeShowHTML() {
           <button
             style="
               margin-left: calc(2 * var(--hs));
-              padding: calc(2 * var(--hs)) calc(4 * var(--hs));
+              padding: calc(2 * var(--hs)) calc(2 * var(--hs));
               font-size: calc(2 * var(--hs));
               background-color: #007bff;
               color: white;
@@ -979,8 +979,8 @@ async function decodeShowHTML() {
 
 .stabilizer-shape {
   position: absolute;
-  width: var(--width);
-  height: var(--width);
+  width: 100%;
+  height: 100%;
   top: 0;
   left: 0;
 }

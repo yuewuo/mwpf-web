@@ -379,8 +379,8 @@ impl TriangularColorCodeBitFlip {
             ..Default::default()
         };
         code.init_data_qubit_positions();
-        // code.init_stabilizer_positions();
-        // code.init_data_qubit_actions();
+        code.init_stabilizer_positions();
+        code.init_data_qubit_actions();
         code
     }
 
@@ -422,9 +422,9 @@ impl TriangularColorCodeBitFlip {
             return false;
         }
         if i % 2 == 0 {
-            (i + j) % 4 == 1
+            j % 4 == 1
         } else {
-            (i + j) % 4 == 3
+            j % 4 == 3
         }
     }
 
@@ -437,6 +437,163 @@ impl TriangularColorCodeBitFlip {
                     self.data_qubit_positions.push((i, j));
                 }
             }
+        }
+    }
+
+    fn init_stabilizer_positions(&mut self) {
+        for i in 0..self.rows() {
+            for j in self.range_for_row(i) {
+                if self.is_z_stabilizer(i, j) {
+                    self.position_to_stabilizer
+                        .insert((i, j), self.stabilizer_positions.len());
+                    self.stabilizer_positions.push((i, j));
+                    self.stabilizer_types.push("Z".to_string());
+                }
+            }
+        }
+    }
+
+    fn init_data_qubit_actions(&mut self) {
+        for (i, j) in self.data_qubit_positions.iter().cloned() {
+            let mut actions = HashMap::new();
+            let error_type = "X";
+            let mut flipped_stabilizers = vec![];
+            for (di, dj) in [(0, 1), (0, -2), (-1, 0), (1, 0), (-1, -1), (1, -1)] {
+                let i2 = (i as isize + di) as usize;
+                let j2 = (j as isize + dj) as usize;
+                if self.is_z_stabilizer(i2, j2) {
+                    let stabilizer_idx = self.position_to_stabilizer[&(i2, j2)];
+                    if self.stabilizer_types[stabilizer_idx] != error_type {
+                        flipped_stabilizers.push(stabilizer_idx);
+                    }
+                }
+            }
+            actions.insert(error_type.to_string(), flipped_stabilizers);
+            self.data_qubit_actions.push(actions);
+        }
+    }
+
+    fn stabilizer_checks(&self) -> Vec<Vec<(usize, String)>> {
+        let mut checks = vec![];
+        for (stabilizer_idx, (i, j)) in self.stabilizer_positions.iter().cloned().enumerate() {
+            let mut check = vec![];
+            for (di, dj) in [(-1, 0), (-1, 1), (0, 2), (1, 1), (1, 0), (0, -1)] {
+                let i2 = (i as isize + di) as usize;
+                let j2 = (j as isize + dj) as usize;
+                if self.is_data_qubit(i2, j2) {
+                    check.push((
+                        self.position_to_data_qubit[&(i2, j2)],
+                        self.stabilizer_types[stabilizer_idx].clone(),
+                    ));
+                }
+            }
+            checks.push(check);
+        }
+        checks
+    }
+
+    fn qubit_f64_position(&self, i: usize, j: usize) -> (f64, f64) {
+        let row_j = match i % 3 {
+            0 => {
+                let idx = j - (i / 3) * 2 + 1;
+                idx / 4 * 3 + idx % 4 - 1
+            }
+            1 => {
+                let idx = j - 1 - (i / 3) * 2;
+                idx / 4 * 3 + idx % 4
+            }
+            2 => {
+                let idx = j + 1 - (i / 3) * 2;
+                idx / 4 * 3 + idx % 4 - 2
+            }
+            _ => unreachable!(),
+        };
+        let interval = 2f64.sqrt() * RSC_SCALE;
+        let row_bias = match i % 3 {
+            0 => 0.0,
+            1 => 0.5,
+            2 => 1.0,
+            _ => unreachable!(),
+        } + (i / 3) as f64 * 1.5;
+        let j_f64 = interval * (row_bias + row_j as f64);
+        let i_f64 = i as f64 * interval / 2.0 * 3f64.sqrt();
+        (i_f64, j_f64)
+    }
+
+    fn data_qubit_f64_position(&self, data_index: usize) -> (f64, f64) {
+        let (i, j) = self.data_qubit_positions[data_index];
+        self.qubit_f64_position(i, j)
+    }
+
+    fn stabilizer_f64_position(&self, stabilizer_index: usize) -> (f64, f64) {
+        let (i, j) = self.stabilizer_positions[stabilizer_index];
+        self.qubit_f64_position(i, j)
+    }
+
+    fn stabilizer_shapes(&self) -> Vec<Vec<(f64, f64)>> {
+        let mut shapes = vec![];
+        let checks = self.stabilizer_checks();
+        for check in checks.iter() {
+            let mut shape = vec![];
+            for &(data_index, _) in check.iter() {
+                shape.push(self.data_qubit_f64_position(data_index));
+            }
+            shapes.push(shape);
+        }
+        shapes
+    }
+
+    fn stabilizer_colors(&self) -> Vec<String> {
+        let mut colors = vec![];
+        for (i, _j) in self.stabilizer_positions.iter().cloned() {
+            colors.push(if i % 3 == 0 {
+                RED.to_string()
+            } else if i % 3 == 1 {
+                GREEN.to_string()
+            } else {
+                BLUE.to_string()
+            });
+        }
+        colors
+    }
+}
+
+impl From<&TriangularColorCodeBitFlip> for ServerCodeInfo {
+    fn from(code: &TriangularColorCodeBitFlip) -> Self {
+        // Z logical observables
+        let mut z_observable = vec![];
+        for j in code.range_for_row(0) {
+            if code.is_data_qubit(0, j) {
+                z_observable.push((code.position_to_data_qubit[&(0, j)], "Z".to_string()));
+            }
+        }
+        let client_info = ClientCodeInfo {
+            id: format!("color-d-{}", code.d),
+            name: format!("Color Code (Bit-Flip, d={})", code.d),
+            d: code.d,
+            data_qubit_positions: (0..code.data_qubit_positions.len())
+                .map(|data_idx| code.data_qubit_f64_position(data_idx))
+                .collect(),
+            stabilizer_positions: (0..code.stabilizer_positions.len())
+                .map(|stabilizer_idx| code.stabilizer_f64_position(stabilizer_idx))
+                .collect(),
+            stabilizer_shapes: code.stabilizer_shapes(),
+            stabilizer_checks: code.stabilizer_checks(),
+            stabilizer_colors: code.stabilizer_colors(),
+            data_qubit_actions: code.data_qubit_actions.clone(),
+            logical_observables: vec![z_observable],
+        };
+        let (solver_initializer, edge_errors) = client_info.construct_graph();
+        let visualize_positions = client_info
+            .stabilizer_positions
+            .iter()
+            .map(|(i, j)| VisualizePosition::new(*i, *j, 0.0))
+            .collect();
+        Self {
+            client_info,
+            edge_errors,
+            solver_initializer,
+            visualize_positions,
         }
     }
 }
@@ -464,11 +621,10 @@ mod tests {
     fn test_triangular_color_code_bit_flip() {
         // cargo test -- test_triangular_color_code_bit_flip --nocapture
         let code = TriangularColorCodeBitFlip::new(3);
-        println!("{:?}\n", code.data_qubit_positions);
-        // println!("{:?}\n{:?}\n\n", code, ServerCodeInfo::from(&code));
-        // println!(
-        //     "{}\n",
-        //     serde_json::to_string(&ServerCodeInfo::from(&code)).unwrap()
-        // );
+        println!("{:?}\n{:?}\n\n", code, ServerCodeInfo::from(&code));
+        println!(
+            "{}\n",
+            serde_json::to_string(&ServerCodeInfo::from(&code)).unwrap()
+        );
     }
 }
