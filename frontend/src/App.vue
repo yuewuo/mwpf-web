@@ -130,7 +130,9 @@ function randomizeError(idx: number) {
     if (code.value.errors == null) {
       code.value.errors = new Map()
     }
-    const error_type = ['I', 'X', 'Y', 'Z'][Math.floor(Math.random() * 4)]
+    const error_types = Object.keys(code.value.data_qubit_actions[idx])
+    error_types.push('I')
+    const error_type = error_types[Math.floor(Math.random() * error_types.length)]
     if (error_type === 'I') {
       code.value.errors.delete(idx)
     } else {
