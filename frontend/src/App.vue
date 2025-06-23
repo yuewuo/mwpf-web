@@ -552,9 +552,9 @@ async function decodeShowHTML() {
               <span class="non-selectable">I</span>
             </button>
 
-            <!-- X error button (right) -->
+            <!-- Y error button (right) -->
             <button
-              class="error-button error-x"
+              class="error-button error-y"
               :style="{
                 top: transform(code.data_qubit_positions[downDataQubitIdx])[0] + 'px',
                 left:
@@ -565,17 +565,17 @@ async function decodeShowHTML() {
                 height: ERROR_ACTION_DIS_RATIO * data_qubit_radius + 'px',
                 fontSize: ERROR_ACTION_DIS_RATIO * 0.7 * data_qubit_radius + 'px'
               }"
-              @mouseenter="mouseEnterErrorAction('X')"
-              @touchmove="mouseEnterErrorAction('X')"
+              @mouseenter="mouseEnterErrorAction('Y')"
+              @touchmove="mouseEnterErrorAction('Y')"
               @mouseleave="mouseLeaveErrorAction"
-              v-if="'X' in code.data_qubit_actions[downDataQubitIdx]"
+              v-if="'Y' in code.data_qubit_actions[downDataQubitIdx]"
             >
-              <span class="non-selectable">X</span>
+              <span class="non-selectable">Y</span>
             </button>
 
-            <!-- Y error button (bottom) -->
+            <!-- X error button (bottom) -->
             <button
-              class="error-button error-y"
+              class="error-button error-x"
               :style="{
                 top:
                   transform(code.data_qubit_positions[downDataQubitIdx])[0] +
@@ -586,11 +586,11 @@ async function decodeShowHTML() {
                 height: ERROR_ACTION_DIS_RATIO * data_qubit_radius + 'px',
                 fontSize: ERROR_ACTION_DIS_RATIO * 0.7 * data_qubit_radius + 'px'
               }"
-              @mouseenter="mouseEnterErrorAction('Y')"
+              @mouseenter="mouseEnterErrorAction('X')"
               @mouseleave="mouseLeaveErrorAction"
-              v-if="'Y' in code.data_qubit_actions[downDataQubitIdx]"
+              v-if="'X' in code.data_qubit_actions[downDataQubitIdx]"
             >
-              <span class="non-selectable">Y</span>
+              <span class="non-selectable">X</span>
             </button>
 
             <!-- Z error button (left) -->
