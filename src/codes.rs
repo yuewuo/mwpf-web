@@ -361,6 +361,86 @@ impl From<&RotatedSurfaceCode> for ServerCodeInfo {
     }
 }
 
+#[derive(Debug, Default, Clone)]
+pub struct TriangularColorCodeBitFlip {
+    pub d: usize,
+    pub data_qubit_positions: Vec<(usize, usize)>,
+    pub position_to_data_qubit: HashMap<(usize, usize), usize>,
+    pub stabilizer_positions: Vec<(usize, usize)>,
+    pub stabilizer_types: Vec<String>,
+    pub position_to_stabilizer: HashMap<(usize, usize), usize>,
+    pub data_qubit_actions: Vec<HashMap<String, Vec<usize>>>,
+}
+
+impl TriangularColorCodeBitFlip {
+    pub fn new(d: usize) -> Self {
+        let mut code = Self {
+            d,
+            ..Default::default()
+        };
+        code.init_data_qubit_positions();
+        // code.init_stabilizer_positions();
+        // code.init_data_qubit_actions();
+        code
+    }
+
+    pub fn rows(&self) -> usize {
+        3 * (self.d - 1) / 2 + 1
+    }
+
+    pub fn columns(&self) -> usize {
+        2 * self.d - 1
+    }
+
+    pub fn range_for_row(&self, r: usize) -> std::ops::Range<usize> {
+        let cr = r / 3;
+        let start = 2 * cr + (if r % 3 == 0 { 0 } else { 1 });
+        let length = self.columns() - 4 * cr - (r % 3);
+        start..(start + length)
+    }
+
+    pub fn is_qubit(&self, i: usize, j: usize) -> bool {
+        if i >= self.rows() {
+            return false;
+        }
+        self.range_for_row(i).contains(&j)
+    }
+
+    pub fn is_data_qubit(&self, i: usize, j: usize) -> bool {
+        if !self.is_qubit(i, j) {
+            return false;
+        }
+        if i % 2 == 0 {
+            (j % 4) == 0 || (j % 4) == 3
+        } else {
+            (j % 4) == 1 || (j % 4) == 2
+        }
+    }
+
+    pub fn is_z_stabilizer(&self, i: usize, j: usize) -> bool {
+        if !self.is_qubit(i, j) {
+            return false;
+        }
+        if i % 2 == 0 {
+            (i + j) % 4 == 1
+        } else {
+            (i + j) % 4 == 3
+        }
+    }
+
+    fn init_data_qubit_positions(&mut self) {
+        for i in 0..self.rows() {
+            for j in self.range_for_row(i) {
+                if self.is_data_qubit(i, j) {
+                    self.position_to_data_qubit
+                        .insert((i, j), self.data_qubit_positions.len());
+                    self.data_qubit_positions.push((i, j));
+                }
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -378,5 +458,17 @@ mod tests {
         // println!("{:?}\n{:?}\n\n", code, ServerCodeInfo::from(code));
         // let code = RotatedSurfaceCode::new(3, NoiseType::OnlyY);
         // println!("{:?}\n{:?}\n\n", code, ServerCodeInfo::from(code));
+    }
+
+    #[test]
+    fn test_triangular_color_code_bit_flip() {
+        // cargo test -- test_triangular_color_code_bit_flip --nocapture
+        let code = TriangularColorCodeBitFlip::new(3);
+        println!("{:?}\n", code.data_qubit_positions);
+        // println!("{:?}\n{:?}\n\n", code, ServerCodeInfo::from(&code));
+        // println!(
+        //     "{}\n",
+        //     serde_json::to_string(&ServerCodeInfo::from(&code)).unwrap()
+        // );
     }
 }
