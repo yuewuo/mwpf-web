@@ -52,7 +52,8 @@ const defaultCode: Reactive<Code> = reactive({
   stabilizer_positions: [],
   stabilizer_shapes: [],
   stabilizer_checks: [],
-  stabilizer_colors: []
+  stabilizer_colors: [],
+  logical_observables: []
 })
 const codes: Ref<Reactive<Code>[]> = ref([])
 const codeNameIds: Ref<string[]> = ref([])
@@ -254,14 +255,15 @@ const decoding = ref(false)
 
 const syndrome = ref<Set<number>>(new Set())
 
-async function decode(with_html: boolean = false) {
+async function decode(with_html: boolean = false): Promise<Decoded | undefined> {
   if (syndrome.value.size === 0) {
-    code.value.decoded = {
+    const decoded: Decoded = {
       correction: [],
       lower: 0,
       upper: 0
     }
-    return
+    code.value.decoded = decoded
+    return decoded
   }
 
   decoding.value = true
@@ -283,8 +285,8 @@ async function decode(with_html: boolean = false) {
     }
 
     const data = await response.json()
-
     code.value.decoded = data
+    return data
   } catch (error) {
     console.error(error)
     alert('Decoding error: ' + (error as Error).message)
@@ -373,6 +375,28 @@ const is_logical_error = computed(() => {
   }
   return false
 })
+
+const showDecodingProcess = ref(false)
+function viewDecodingProcess() {
+  showDecodingProcess.value = true
+}
+
+async function decodeShowHTML() {
+  showDecodingProcess.value = false
+  const decoded = await decode(true)
+  if (decoded?.html != null) {
+    // I tried to open a new tab but it doesn't work somehow
+    const blob = new Blob([decoded.html], { type: 'text/html' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'decoding-process.html'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+}
 </script>
 
 <template>
@@ -590,7 +614,7 @@ const is_logical_error = computed(() => {
             >Rigorously proven: {{ code.decoded.lower }} ≤ weight(MWPF) ≤ {{ code.decoded.upper }}
           </span>
           <span v-if="code.decoded.upper != 0">
-            (<a href="" target="_blank">see decoding process</a>)</span
+            (<a href="" @click.prevent="viewDecodingProcess">view decoding process</a>)</span
           >
         </p>
 
@@ -661,6 +685,71 @@ const is_logical_error = computed(() => {
       >
         <img src="./assets/pypi.png" alt="PyPI" class="python-icon" />
       </a>
+
+      <!-- Decoding process overlay -->
+      <div
+        v-if="showDecodingProcess"
+        style="
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 100;
+        "
+      >
+        <div
+          style="
+            background-color: white;
+            padding: calc(3 * var(--hs));
+            border-radius: calc(2 * var(--hs));
+            text-align: center;
+            max-width: 80%;
+          "
+        >
+          <p style="font-size: calc(2.5 * var(--hs)); margin-bottom: calc(2 * var(--hs))">
+            For best experience, please use a desktop browser and open the downloaded HTML
+          </p>
+          <img
+            style="width: 100%; height: auto; margin-bottom: calc(2 * var(--hs))"
+            src="/public/decoding-process.jpg"
+            alt="Decoding Process"
+          />
+          <button
+            style="
+              padding: calc(2 * var(--hs)) calc(4 * var(--hs));
+              font-size: calc(2 * var(--hs));
+              background-color: grey;
+              color: white;
+              border: none;
+              border-radius: calc(1.5 * var(--hs));
+              cursor: pointer;
+            "
+            @click="showDecodingProcess = false"
+          >
+            Close
+          </button>
+          <button
+            style="
+              margin-left: calc(2 * var(--hs));
+              padding: calc(2 * var(--hs)) calc(4 * var(--hs));
+              font-size: calc(2 * var(--hs));
+              background-color: #007bff;
+              color: white;
+              border: none;
+              border-radius: calc(1.5 * var(--hs));
+              cursor: pointer;
+            "
+            @click="decodeShowHTML()"
+          >
+            Decode (step-by-step)
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -695,7 +784,7 @@ const is_logical_error = computed(() => {
   width: var(--width);
   height: var(--height);
   background-color: white;
-  border-radius: var(--hs);
+  border-radius: calc(2 * var(--hs));
   box-shadow: 0 calc(0.8 * var(--hs)) calc(4 * var(--hs)) rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;

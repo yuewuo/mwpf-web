@@ -95,12 +95,28 @@ pub async fn decode(req: HttpRequest, query: web::Query<DecodeParams>) -> Result
         .iter()
         .map(|edge_index| code.edge_errors[*edge_index].clone())
         .collect();
-
-    Ok(web::Json(json!({
+    let mut result: serde_json::Map<String, serde_json::Value> = json!({
         "correction": correction,
         "lower": weight_range.lower.to_f64(),
         "upper": weight_range.upper.to_f64(),
-    })))
+    })
+    .as_object()
+    .unwrap()
+    .clone();
+    if query.with_json.is_some() {
+        result.insert(
+            "json".to_string(),
+            visualizer.as_mut().unwrap().get_visualizer_data(),
+        );
+    }
+    if query.with_html.is_some() {
+        result.insert(
+            "html".to_string(),
+            visualizer.as_mut().unwrap().generate_html(json!({})).into(),
+        );
+    }
+
+    Ok(web::Json(result))
 }
 
 #[get("/api/codes")]
