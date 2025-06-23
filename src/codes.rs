@@ -1,9 +1,14 @@
+use mwpf::util::{HyperEdge, SolverInitializer};
+use mwpf::visualize::VisualizePosition;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ServerCodeInfo {
     pub client_info: ClientCodeInfo,
+    pub solver_initializer: SolverInitializer,
+    pub edge_errors: Vec<(usize, String)>, // (data_qubit_index, check_type)
+    pub visualize_positions: Vec<VisualizePosition>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -17,6 +22,36 @@ pub struct ClientCodeInfo {
     pub stabilizer_shapes: Vec<Vec<(f64, f64)>>,
     pub stabilizer_checks: Vec<Vec<(usize, String)>>, // (data_qubit_index, check_type)
     pub stabilizer_colors: Vec<String>,
+}
+
+impl ClientCodeInfo {
+    pub fn construct_graph(&self) -> (SolverInitializer, Vec<(usize, String)>) {
+        let vertex_num = self.stabilizer_positions.len();
+        // deduplicate hyperedges
+        let mut hyperedges: HashMap<BTreeSet<usize>, (usize, String)> = HashMap::new();
+        for (data_index, actions) in self.data_qubit_actions.iter().enumerate() {
+            for (error_type, syndrome) in actions.iter() {
+                let hyperedge = BTreeSet::from_iter(syndrome.iter().cloned());
+                if !hyperedges.contains_key(&hyperedge) {
+                    hyperedges.insert(hyperedge, (data_index, error_type.clone()));
+                }
+            }
+        }
+        // construct weighted edges
+        let mut weighted_edges = vec![];
+        let mut edge_errors = vec![];
+        for (hyperedge, (data_index, error_type)) in hyperedges.iter() {
+            weighted_edges.push(HyperEdge::new(
+                hyperedge.iter().cloned().collect(),
+                1.0.into(),
+            ));
+            edge_errors.push((*data_index, error_type.clone()));
+        }
+        (
+            SolverInitializer::new(vertex_num, weighted_edges),
+            edge_errors,
+        )
+    }
 }
 
 #[derive(Default, Clone)]
@@ -280,22 +315,32 @@ impl RotatedSurfaceCode {
 
 impl From<&RotatedSurfaceCode> for ServerCodeInfo {
     fn from(code: &RotatedSurfaceCode) -> Self {
+        let client_info = ClientCodeInfo {
+            id: format!("rsc-{}-d-{}", code.noise_type, code.d),
+            name: format!("Surface Code ({:?}, d={})", code.noise_type, code.d),
+            d: code.d,
+            data_qubit_positions: (0..code.data_qubit_positions.len())
+                .map(|data_idx| code.data_qubit_f64_position(data_idx))
+                .collect(),
+            stabilizer_positions: (0..code.stabilizer_positions.len())
+                .map(|stabilizer_idx| code.stabilizer_f64_position(stabilizer_idx))
+                .collect(),
+            stabilizer_shapes: code.stabilizer_shapes(),
+            stabilizer_checks: code.stabilizer_checks(),
+            stabilizer_colors: code.stabilizer_colors(),
+            data_qubit_actions: code.data_qubit_actions.clone(),
+        };
+        let (solver_initializer, edge_errors) = client_info.construct_graph();
+        let visualize_positions = client_info
+            .stabilizer_positions
+            .iter()
+            .map(|(i, j)| VisualizePosition::new(*i, *j, 0.0))
+            .collect();
         Self {
-            client_info: ClientCodeInfo {
-                id: format!("rsc-{}-d-{}", code.noise_type, code.d),
-                name: format!("Surface Code ({:?}, d={})", code.noise_type, code.d),
-                d: code.d,
-                data_qubit_positions: (0..code.data_qubit_positions.len())
-                    .map(|data_idx| code.data_qubit_f64_position(data_idx))
-                    .collect(),
-                stabilizer_positions: (0..code.stabilizer_positions.len())
-                    .map(|stabilizer_idx| code.stabilizer_f64_position(stabilizer_idx))
-                    .collect(),
-                stabilizer_shapes: code.stabilizer_shapes(),
-                stabilizer_checks: code.stabilizer_checks(),
-                stabilizer_colors: code.stabilizer_colors(),
-                data_qubit_actions: code.data_qubit_actions.clone(),
-            },
+            client_info,
+            edge_errors,
+            solver_initializer,
+            visualize_positions,
         }
     }
 }

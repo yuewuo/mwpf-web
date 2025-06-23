@@ -13,5 +13,8 @@ env_logger = "0.10"
 log = "0.4"
 clap = { version = "4.0", features = ["derive"] }
 lazy_static = "1.4"
+num-traits = "0.2.15"
+
 # mwpf = { git = "https://github.com/yuewuo/mwpf.git" }
 mwpf = { path = "../mwpf" }
+smol = "2.0.2"

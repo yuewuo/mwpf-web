@@ -29,21 +29,21 @@ curl http://127.0.0.1:8080/
 
 ### Decode
 ```bash
-curl "http://127.0.0.1:8080/decode?type=rsc-d-3&syndrome=0,1&html=1"
+curl "http://127.0.0.1:8080/api/decode?code_id=rsc-depolarize-d-3&syndrome=0,1&with_html=1&cluster_node_limit=200"
 ```
 Response: `{ decode }`
 
 
 ### Code Information
 ```bash
-curl "http://127.0.0.1:8080/codes"
+curl "http://127.0.0.1:8080/api/codes"
 ```
 Response: `{ 'rsc-d-5': { .. }, 'color-d-5': { .. } }`
 
 ## Endpoints
 
-| Endpoint      | Method | Description      | Parameters                            |
-| ------------- | ------ | ---------------- | ------------------------------------- |
-| `/`           | GET    | Health check     | None                                  |
-| `/api/decode` | GET    | Decode           | type, syndrome, html, visualizer_json |
-| `/api/codes`  | GET    | Code Information |                                       |
+| Endpoint      | Method | Description      | Parameters                                                  |
+| ------------- | ------ | ---------------- | ----------------------------------------------------------- |
+| `/`           | GET    | Health check     | None                                                        |
+| `/api/decode` | GET    | Decode           | code_id, syndrome, with_html, with_json, cluster_node_limit |
+| `/api/codes`  | GET    | Code Information |                                                             |

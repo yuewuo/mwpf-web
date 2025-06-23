@@ -1,34 +1,106 @@
 pub mod codes;
 
-use actix_web::{get, web, App, HttpServer, Responder};
+use actix_web::{get, web, App, HttpRequest, HttpServer, Responder, Result};
 use clap::Parser;
-use lazy_static::lazy_static;
-use serde::Deserialize;
-use std::collections::HashMap;
-
 use codes::*;
+use lazy_static::lazy_static;
+use mwpf::mwpf_solver::{SolverSerialJointSingleHair, SolverTrait};
+use mwpf::util::*;
+use mwpf::visualize::*;
+use num_traits::cast::ToPrimitive;
+use serde::Deserialize;
+use serde_json::json;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 #[derive(Debug, Deserialize)]
 pub struct DecodeParams {
+    /// the id of the code type
+    pub code_id: String,
+    /// the syndrome in the format of "1,2,3"
+    pub syndrome: String,
     /// if specified, the visualizer json will be returned in the field `visualizer_json`
-    pub visualizer_json: Option<String>,
+    pub with_json: Option<String>,
     /// if specified, the standalone html visualizer will be returned in the field `html`
-    pub html: Option<String>,
+    pub with_html: Option<String>,
+    /// the maximum number of nodes per cluster
+    /// if not specified, the default value is 200
+    #[serde(default = "default_cluster_node_limit")]
+    pub cluster_node_limit: usize,
+}
+
+fn default_cluster_node_limit() -> usize {
+    200
 }
 
 #[get("/api/decode")]
-pub async fn decode(query: web::Query<DecodeParams>) -> impl Responder {
-    let mut result = String::new();
+pub async fn decode(req: HttpRequest, query: web::Query<DecodeParams>) -> Result<impl Responder> {
+    // log user request
+    let remote_ip = req
+        .connection_info()
+        .realip_remote_addr()
+        .map(|ip| ip.to_string());
+    log::info!(
+        "Decode request from {:?}: code_id={}, syndrome={}, with_json={}, with_html={}, cluster_node_limit={}",
+        remote_ip,
+        query.code_id,
+        query.syndrome,
+        query.with_json.is_some(),
+        query.with_html.is_some(),
+        query.cluster_node_limit,
+    );
 
-    // Combine the parameters into a single string
-    let with_html = query.html.is_some();
+    // return Err(actix_web::error::ErrorBadRequest("Debug".to_string())); // debug
+    // smol::Timer::after(std::time::Duration::from_secs(3)).await; // debug
 
-    // If no parameters provided, return a default message
-    if result.is_empty() {
-        result = "No parameters provided".to_string();
+    let code_id = query.code_id.clone();
+    let code = CODES_MAP
+        .get(&code_id)
+        .ok_or(actix_web::error::ErrorBadRequest(
+            "Code not found".to_string(),
+        ))?;
+    let syndrome: Vec<usize> = query
+        .syndrome
+        .split(',')
+        .map(|s| {
+            s.parse::<usize>().map_err(|_| {
+                actix_web::error::ErrorBadRequest("Invalid syndrome format".to_string())
+            })
+        })
+        .collect::<Result<Vec<usize>, actix_web::Error>>()?;
+    for vertex_index in syndrome.iter() {
+        if *vertex_index >= code.visualize_positions.len() {
+            return Err(actix_web::error::ErrorBadRequest(
+                "Invalid syndrome due to vertex index out of range".to_string(),
+            ));
+        }
     }
 
-    result
+    // construct decoder
+    let mut visualizer = None;
+    if query.with_json.is_some() || query.with_html.is_some() {
+        visualizer = Some(
+            Visualizer::new(Some(String::new()), code.visualize_positions.clone(), true).unwrap(),
+        );
+    }
+    let mut solver = SolverSerialJointSingleHair::new(
+        &Arc::new(code.solver_initializer.clone()),
+        json!({"cluster_node_limit": query.cluster_node_limit}),
+    );
+    let syndrome_pattern = SyndromePattern::new_vertices(syndrome.clone());
+    solver.solve_visualizer(syndrome_pattern.clone(), visualizer.as_mut());
+    let (subgraph, weight_range) = solver.subgraph_range_visualizer(visualizer.as_mut());
+
+    let correction: Vec<(usize, String)> = subgraph
+        .iter()
+        .map(|edge_index| code.edge_errors[*edge_index].clone())
+        .collect();
+
+    Ok(web::Json(json!({
+        "correction": correction,
+        "lower": weight_range.lower.to_f64(),
+        "upper": weight_range.upper.to_f64(),
+    })))
 }
 
 #[get("/api/codes")]
@@ -53,7 +125,7 @@ lazy_static! {
     static ref CODES_MAP: HashMap<String, ServerCodeInfo> = {
         let mut map = HashMap::new();
         for code in CODES.iter() {
-            map.insert(code.client_info.name.clone(), code.clone());
+            map.insert(code.client_info.id.clone(), code.clone());
         }
         map
     };
@@ -85,6 +157,14 @@ pub async fn main() -> std::io::Result<()> {
         "Starting MWPF Backend server on {}:{}...",
         args.ip,
         args.port
+    );
+
+    log::info!(
+        "Available codes: {:?}",
+        CODES
+            .iter()
+            .map(|code| code.client_info.id.clone())
+            .collect::<Vec<_>>()
     );
 
     HttpServer::new(|| App::new().service(index).service(decode).service(get_codes))

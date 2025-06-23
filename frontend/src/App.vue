@@ -28,8 +28,6 @@ function updateHeight() {
 window.addEventListener('resize', updateHeight)
 updateHeight()
 
-const decoded = ref(false)
-
 interface Code {
   id: string
   name: string
@@ -124,7 +122,8 @@ function mouseDown(idx: number) {
 
 function randomizeError(idx: number) {
   if (downDataQubitIdx.value == idx) {
-    console.log('randomize error on data qubit ', idx)
+    // console.log('randomize error on data qubit ', idx)
+    decoded.value = null
     if (code.value.errors == null) {
       code.value.errors = new Map()
     }
@@ -142,6 +141,7 @@ const dataQubits = ref<HTMLDivElement[]>([])
 
 function globalMouseUp(event: MouseEvent | TouchEvent) {
   if (downDataQubitIdx.value !== null && downErrorAction.value !== null) {
+    decoded.value = null
     if (code.value.errors == null) {
       code.value.errors = new Map()
     }
@@ -165,7 +165,6 @@ function globalMouseUp(event: MouseEvent | TouchEvent) {
     }
   }
   downDataQubitIdx.value = null
-  console.log(code.value.errors)
 }
 function globalTouchMove(event: TouchEvent) {
   // handling touch screen error selection
@@ -238,9 +237,57 @@ onBeforeUnmount(() => {
 
 function reset() {
   code.value.errors = undefined
+  decoded.value = null
 }
 
+interface Decoded {
+  correction: [number, string][]
+  lower: number
+  upper: number
+  json?: object
+  html?: string
+}
+
+const decoded: Ref<Decoded | null> = ref(null)
+const decoding = ref(false)
+
 const syndrome = ref<Set<number>>(new Set())
+
+async function decode() {
+  if (syndrome.value.size === 0) {
+    decoded.value = {
+      correction: [],
+      lower: 0,
+      upper: 0
+    }
+    return
+  }
+
+  decoding.value = true
+  decoded.value = null
+
+  try {
+    // Convert syndrome Set to comma-separated string
+    const syndromeString = Array.from(syndrome.value).join(',')
+
+    // Send GET request to backend
+    const response = await fetch(`/api/decode?code_id=${code.value.id}&syndrome=${syndromeString}`)
+
+    if (!response.ok) {
+      throw new Error(await response.text())
+    }
+
+    const data = await response.json()
+    console.log(data)
+
+    decoded.value = data
+  } catch (error) {
+    console.error(error)
+    alert('Decoding error: ' + (error as Error).message)
+  } finally {
+    decoding.value = false
+  }
+}
 
 watchEffect(() => {
   const errors = code.value.errors
@@ -437,8 +484,20 @@ watchEffect(() => {
             </button>
           </div>
         </div>
-        <p v-if="!decoded">Click "Decode" to start decoding</p>
-        <p v-if="decoded">Rigorously proven (<a href="" target="_blank">decoding process</a>)</p>
+        <p v-if="!decoded && !decoding">Click "Decode" to start decoding</p>
+        <p v-if="decoding">Decoding...</p>
+        <p v-if="decoded">
+          <span v-if="decoded.upper == 0">Empty correction</span>
+          <span v-else-if="decoded.lower >= decoded.upper - 1"
+            >Found optimal Most-Likely Error (MLE)</span
+          >
+          <span v-else
+            >Rigorously proven: {{ decoded.lower }} ≤ weight(MWPF) ≤ {{ decoded.upper }}
+          </span>
+          <span v-if="decoded.upper != 0">
+            (<a href="" target="_blank">see decoding process</a>)</span
+          >
+        </p>
 
         <div class="controller-panel">
           <div>
@@ -453,7 +512,13 @@ watchEffect(() => {
             </select>
           </div>
           <div>
-            <button class="button decode-button">Decode</button>
+            <button
+              class="button decode-button"
+              @click="decode"
+              :disabled="decoding || decoded != null"
+            >
+              {{ decoding ? 'Decoding...' : 'Decode' }}
+            </button>
           </div>
         </div>
         <div style="height: calc(10 * var(--hs))"></div>
@@ -730,6 +795,17 @@ watchEffect(() => {
     transparent
   );
   background-size: calc(1 * var(--hs)) calc(1 * var(--hs));
+  width: calc(12 * var(--hs));
+}
+
+.decode-button[disabled='disabled'],
+.decode-button:disabled {
+  background-color: #f5f5f5;
+  border-color: #e0e0e0;
+  color: #999;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .decode-button:hover {
