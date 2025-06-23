@@ -392,20 +392,23 @@ function viewDecodingProcess() {
 }
 
 async function decodeShowHTML() {
-  showDecodingProcess.value = false
-  const decoded = await decode(true)
-  if (decoded?.html != null) {
-    // I tried to open a new tab but it doesn't work somehow
-    const blob = new Blob([decoded.html], { type: 'text/html' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = 'decoding-process.html'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-  }
+  // showDecodingProcess.value = false
+  // const decoded = await decode(true)
+  // if (decoded?.html != null) {
+  //   // I tried to open a new tab but it doesn't work somehow
+  //   const blob = new Blob([decoded.html], { type: 'text/html' })
+  //   const url = URL.createObjectURL(blob)
+  //   const link = document.createElement('a')
+  //   link.href = url
+  //   link.download = 'decoding-process.html'
+  //   document.body.appendChild(link)
+  //   link.click()
+  //   document.body.removeChild(link)
+  //   URL.revokeObjectURL(url)
+  // }
+  const syndromeString = Array.from(syndrome.value).join(',')
+  const url = `/api/decoding-process?code_id=${code.value.id}&syndrome=${syndromeString}`
+  window.open(url, '_blank')?.focus()
 }
 </script>
 
@@ -733,7 +736,8 @@ async function decodeShowHTML() {
           "
         >
           <p style="font-size: calc(2.5 * var(--hs)); margin-bottom: calc(2 * var(--hs))">
-            For best experience, please use a desktop browser and open the downloaded HTML
+            <!-- For best experience, please use a desktop browser and open the downloaded HTML -->
+            For best experience, please use landscape mode or use a desktop browser.
           </p>
           <img
             style="width: 100%; height: auto; margin-bottom: calc(2 * var(--hs))"
