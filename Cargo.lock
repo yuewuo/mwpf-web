@@ -542,6 +542,7 @@ dependencies = [
 [[package]]
 name = "bp"
 version = "0.1.0"
+source = "git+https://github.com/yuewuo/mwpf.git#832952b86d96e4b5d9ca9f957873f25825e7194a"
 dependencies = [
  "float-cmp 0.10.0",
  "rand 0.8.5",
@@ -1275,6 +1276,7 @@ dependencies = [
 [[package]]
 name = "heapz"
 version = "1.1.4"
+source = "git+https://github.com/yuewuo/mwpf.git#832952b86d96e4b5d9ca9f957873f25825e7194a"
 
 [[package]]
 name = "heck"
@@ -1309,6 +1311,7 @@ checksum = "fc0fef456e4baa96da950455cd02c081ca953b141298e41db3fc7e36b1da849c"
 [[package]]
 name = "highs"
 version = "1.6.1"
+source = "git+https://github.com/yuewuo/mwpf.git#832952b86d96e4b5d9ca9f957873f25825e7194a"
 dependencies = [
  "highs-sys",
  "log",
@@ -1730,6 +1733,7 @@ checksum = "1fafa6961cabd9c63bcd77a45d7e3b7f3b552b70417831fb0f56db717e72407e"
 [[package]]
 name = "mwpf"
 version = "0.2.10"
+source = "git+https://github.com/yuewuo/mwpf.git#832952b86d96e4b5d9ca9f957873f25825e7194a"
 dependencies = [
  "base64",
  "bp",
@@ -2011,6 +2015,7 @@ dependencies = [
 [[package]]
 name = "pheap"
 version = "0.3.0"
+source = "git+https://github.com/yuewuo/mwpf.git#832952b86d96e4b5d9ca9f957873f25825e7194a"
 dependencies = [
  "num-traits",
 ]
@@ -2550,6 +2555,7 @@ checksum = "04dc19736151f35336d325007ac991178d504a119863a2fcb3758cdb5e52c50d"
 [[package]]
 name = "slp"
 version = "0.2.0"
+source = "git+https://github.com/yuewuo/mwpf.git#832952b86d96e4b5d9ca9f957873f25825e7194a"
 dependencies = [
  "num-bigint",
  "num-rational",
