@@ -232,7 +232,9 @@ onMounted(async () => {
   for (const code of loadingCodes) {
     codes.value.push(reactive(code))
   }
-  codeIndex.value = 0
+  if (loadingCodes.length > 0) {
+    codeIndex.value = 0
+  }
   document.addEventListener('mouseup', globalMouseUp)
   document.addEventListener('touchend', globalMouseUp)
   document.addEventListener('touchmove', globalTouchMove)
