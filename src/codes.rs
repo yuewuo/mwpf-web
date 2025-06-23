@@ -106,6 +106,7 @@ impl std::fmt::Debug for NoiseType {
 }
 
 const RSC_SCALE: f64 = 1.0;
+const VISUALIZE_SCALE: f64 = 0.5;
 const RSC_ROUND_SEGMENTS: usize = 36; // how many points on the round
 
 #[derive(Debug, Default, Clone)]
@@ -330,9 +331,14 @@ impl From<&RotatedSurfaceCode> for ServerCodeInfo {
                 x_observable.push((code.position_to_data_qubit[&(1, j)], "X".to_string()));
             }
         }
+        let noise_str = match code.noise_type {
+            NoiseType::Depolarize => "".to_string(),
+            NoiseType::BitFlip => "Bit-Flip, ".to_string(),
+            NoiseType::OnlyY => "Y-Flip, ".to_string(),
+        };
         let client_info = ClientCodeInfo {
             id: format!("rsc-{}-d-{}", code.noise_type, code.d),
-            name: format!("Surface Code ({:?}, d={})", code.noise_type, code.d),
+            name: format!("Surface Code ({}d={})", noise_str, code.d),
             d: code.d,
             data_qubit_positions: (0..code.data_qubit_positions.len())
                 .map(|data_idx| code.data_qubit_f64_position(data_idx))
@@ -350,7 +356,7 @@ impl From<&RotatedSurfaceCode> for ServerCodeInfo {
         let visualize_positions = client_info
             .stabilizer_positions
             .iter()
-            .map(|(i, j)| VisualizePosition::new(*i, *j, 0.0))
+            .map(|(i, j)| VisualizePosition::new(*i * VISUALIZE_SCALE, *j * VISUALIZE_SCALE, 0.0))
             .collect();
         Self {
             client_info,
@@ -517,7 +523,7 @@ impl TriangularColorCodeBitFlip {
         } + (i / 3) as f64 * 1.5;
         let j_f64 = interval * (row_bias + row_j as f64);
         let i_f64 = i as f64 * interval / 2.0 * 3f64.sqrt();
-        (i_f64, j_f64)
+        (-i_f64, j_f64)
     }
 
     fn data_qubit_f64_position(&self, data_index: usize) -> (f64, f64) {
@@ -587,7 +593,7 @@ impl From<&TriangularColorCodeBitFlip> for ServerCodeInfo {
         let visualize_positions = client_info
             .stabilizer_positions
             .iter()
-            .map(|(i, j)| VisualizePosition::new(*i, *j, 0.0))
+            .map(|(i, j)| VisualizePosition::new(*i * VISUALIZE_SCALE, *j * VISUALIZE_SCALE, 0.0))
             .collect();
         Self {
             client_info,
