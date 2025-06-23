@@ -33,26 +33,13 @@ fn default_cluster_node_limit() -> usize {
     200
 }
 
-#[get("/api/decode")]
-pub async fn decode(req: HttpRequest, query: web::Query<DecodeParams>) -> Result<impl Responder> {
-    // log user request
-    let remote_ip = req
-        .connection_info()
-        .realip_remote_addr()
-        .map(|ip| ip.to_string());
-    log::info!(
-        "Decode request from {:?}: code_id={}, syndrome={}, with_json={}, with_html={}, cluster_node_limit={}",
-        remote_ip,
-        query.code_id,
-        query.syndrome,
-        query.with_json.is_some(),
-        query.with_html.is_some(),
-        query.cluster_node_limit,
-    );
+pub struct DecodeResult {
+    pub correction: Vec<(usize, String)>,
+    pub weight_range: WeightRange,
+    pub visualizer: Option<Visualizer>,
+}
 
-    // return Err(actix_web::error::ErrorBadRequest("Debug".to_string())); // debug
-    // smol::Timer::after(std::time::Duration::from_secs(3)).await; // debug
-
+pub async fn decode_common(query: &DecodeParams) -> Result<DecodeResult> {
     let code_id = query.code_id.clone();
     let code = CODES_MAP
         .get(&code_id)
@@ -75,7 +62,6 @@ pub async fn decode(req: HttpRequest, query: web::Query<DecodeParams>) -> Result
             ));
         }
     }
-
     // construct decoder
     let mut visualizer = None;
     if query.with_json.is_some() || query.with_html.is_some() {
@@ -95,10 +81,41 @@ pub async fn decode(req: HttpRequest, query: web::Query<DecodeParams>) -> Result
         .iter()
         .map(|edge_index| code.edge_errors[*edge_index].clone())
         .collect();
+
+    Ok(DecodeResult {
+        correction,
+        weight_range,
+        visualizer,
+    })
+}
+
+#[get("/api/decode")]
+pub async fn decode(req: HttpRequest, query: web::Query<DecodeParams>) -> Result<impl Responder> {
+    // log user request
+    let remote_ip = req
+        .connection_info()
+        .realip_remote_addr()
+        .map(|ip| ip.to_string());
+    log::info!(
+        "Decode request from {:?}: code_id={}, syndrome={}, with_json={}, with_html={}, cluster_node_limit={}",
+        remote_ip,
+        query.code_id,
+        query.syndrome,
+        query.with_json.is_some(),
+        query.with_html.is_some(),
+        query.cluster_node_limit,
+    );
+
+    // return Err(actix_web::error::ErrorBadRequest("Debug".to_string())); // debug
+    // smol::Timer::after(std::time::Duration::from_secs(3)).await; // debug
+
+    let query = query.into_inner();
+    let mut decoded = decode_common(&query).await?;
+
     let mut result: serde_json::Map<String, serde_json::Value> = json!({
-        "correction": correction,
-        "lower": weight_range.lower.to_f64(),
-        "upper": weight_range.upper.to_f64(),
+        "correction": decoded.correction,
+        "lower": decoded.weight_range.lower.to_f64(),
+        "upper": decoded.weight_range.upper.to_f64(),
     })
     .as_object()
     .unwrap()
@@ -106,17 +123,57 @@ pub async fn decode(req: HttpRequest, query: web::Query<DecodeParams>) -> Result
     if query.with_json.is_some() {
         result.insert(
             "json".to_string(),
-            visualizer.as_mut().unwrap().get_visualizer_data(),
+            decoded.visualizer.as_mut().unwrap().get_visualizer_data(),
         );
     }
     if query.with_html.is_some() {
         result.insert(
             "html".to_string(),
-            visualizer.as_mut().unwrap().generate_html(json!({})).into(),
+            decoded
+                .visualizer
+                .as_mut()
+                .unwrap()
+                .generate_html(json!({}))
+                .into(),
         );
     }
 
     Ok(web::Json(result))
+}
+
+#[get("/api/decoding-process")]
+pub async fn decoding_process(
+    req: HttpRequest,
+    query: web::Query<DecodeParams>,
+) -> Result<impl Responder> {
+    // log user request
+    let remote_ip = req
+        .connection_info()
+        .realip_remote_addr()
+        .map(|ip| ip.to_string());
+    log::info!(
+        "Decode request from {:?}: code_id={}, syndrome={}, with_json={}, with_html={}, cluster_node_limit={}",
+        remote_ip,
+        query.code_id,
+        query.syndrome,
+        query.with_json.is_some(),
+        query.with_html.is_some(),
+        query.cluster_node_limit,
+    );
+
+    // return Err(actix_web::error::ErrorBadRequest("Debug".to_string())); // debug
+    // smol::Timer::after(std::time::Duration::from_secs(3)).await; // debug
+
+    let mut query = query.into_inner();
+    query.with_html = Some("".to_string());
+    let mut decoded = decode_common(&query).await?;
+    let html = decoded
+        .visualizer
+        .as_mut()
+        .unwrap()
+        .generate_html(json!({}));
+
+    Ok(web::Html::new(html))
 }
 
 #[get("/api/codes")]
@@ -183,10 +240,16 @@ pub async fn main() -> std::io::Result<()> {
             .collect::<Vec<_>>()
     );
 
-    HttpServer::new(|| App::new().service(index).service(decode).service(get_codes))
-        .bind((args.ip, args.port))?
-        .run()
-        .await
+    HttpServer::new(|| {
+        App::new()
+            .service(index)
+            .service(decode)
+            .service(get_codes)
+            .service(decoding_process)
+    })
+    .bind((args.ip, args.port))?
+    .run()
+    .await
 }
 
 #[cfg(test)]
