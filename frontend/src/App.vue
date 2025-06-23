@@ -217,9 +217,14 @@ function stabilizerCheckPosition(stabilizer_idx: number, data_idx: number) {
 }
 
 async function getCodes(): Promise<Code[]> {
-  const response = await fetch('/api/codes')
-  const codes: Code[] = await response.json()
-  return codes
+  try {
+    const response = await fetch('/api/codes')
+    const codes: Code[] = await response.json()
+    return codes
+  } catch (error) {
+    decoderServerDown.value = true
+  }
+  return []
 }
 
 onMounted(async () => {
@@ -252,6 +257,7 @@ interface Decoded {
 }
 
 const decoding = ref(false)
+const decoderServerDown = ref(false)
 
 const syndrome = ref<Set<number>>(new Set())
 
@@ -748,6 +754,37 @@ async function decodeShowHTML() {
           >
             Decode (step-by-step)
           </button>
+        </div>
+      </div>
+
+      <div
+        v-if="decoderServerDown"
+        style="
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 100;
+        "
+      >
+        <div
+          style="
+            background-color: white;
+            padding: calc(3 * var(--hs));
+            border-radius: calc(2 * var(--hs));
+            text-align: center;
+            max-width: 80%;
+          "
+        >
+          <p style="font-size: calc(2.5 * var(--hs)); margin-bottom: calc(0.5 * var(--hs))">
+            Decoder server is down. Please try again later or contact me at
+            <a href="mailto:yue.wu@yale.edu">yue.wu@yale.edu</a>.
+          </p>
         </div>
       </div>
     </div>
