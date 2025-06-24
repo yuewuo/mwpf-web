@@ -681,7 +681,7 @@ async function decodeShowHTML() {
               border-radius: calc(2 * var(--hs));
               color: green;
             "
-            >Correction Succeed!</span
+            >Correction Success!</span
           >
         </div>
       </div>
