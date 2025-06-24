@@ -1,6 +1,6 @@
 pub mod codes;
 
-use actix_web::{get, web, App, HttpRequest, HttpServer, Responder, Result};
+use actix_web::{App, HttpRequest, HttpServer, Responder, Result, get, web};
 use clap::Parser;
 use codes::*;
 use lazy_static::lazy_static;
@@ -177,7 +177,14 @@ pub async fn decoding_process(
 }
 
 #[get("/api/codes")]
-pub async fn get_codes() -> impl Responder {
+pub async fn get_codes(req: HttpRequest) -> impl Responder {
+    // log user request
+    let remote_ip = req
+        .connection_info()
+        .realip_remote_addr()
+        .map(|ip| ip.to_string());
+    log::info!("Codes request from {:?}", remote_ip,);
+
     let codes: Vec<ClientCodeInfo> = CODES.iter().map(|code| code.client_info.clone()).collect();
     serde_json::to_string(&codes).unwrap()
 }
