@@ -1,0 +1,12 @@
+[package]
+name = "loadtest"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+goose = "^0.18"
+tokio = "^1.12"
+goose-eggs = "^0.6"
+mwpf-web = { path = ".." }
+rand = "0.9.1"
+lazy_static = "1.5.0"

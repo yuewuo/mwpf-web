@@ -47,3 +47,12 @@ Response: `{ 'rsc-d-5': { .. }, 'color-d-5': { .. } }`
 | `/`           | GET    | Health check     | None                                                        |
 | `/api/decode` | GET    | Decode           | code_id, syndrome, with_html, with_json, cluster_node_limit |
 | `/api/codes`  | GET    | Code Information |                                                             |
+
+## Load Testing
+
+```sh
+cd loadtest
+cargo run --release -- --host http://localhost:8080 --report-file=report-m1max.html --no-reset-metrics --run-time=30s
+```
+
+When tested on Apple M1Max CPU, it can handle about 6000 requests per second.
