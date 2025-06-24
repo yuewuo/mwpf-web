@@ -670,7 +670,7 @@ async function decodeShowHTML() {
               border-radius: calc(2 * var(--hs));
               color: red;
             "
-            >Logical Error!</span
+            >Logical Qubit Error!</span
           >
           <span
             v-if="code.decoded != null && !is_logical_error"
