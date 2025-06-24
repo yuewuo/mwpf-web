@@ -54,7 +54,6 @@ fn generate_random_syndrome(code: &ServerCodeInfo) -> String {
                 .collect();
         }
     }
-    println!("syndrome: {:?}", syndrome);
     syndrome
         .iter()
         .map(|s| s.to_string())
@@ -64,7 +63,7 @@ fn generate_random_syndrome(code: &ServerCodeInfo) -> String {
 
 #[tokio::main]
 async fn main() -> Result<(), GooseError> {
-    let mut scenario = scenario!("DecodeTransactions");
+    let mut scenario_decode = scenario!("DecodeTransactions");
 
     for url in TEST_URLS.iter() {
         let closure: TransactionFunction = Arc::new(move |user| {
@@ -77,12 +76,28 @@ async fn main() -> Result<(), GooseError> {
             })
         });
         let transaction = Transaction::new(closure);
-        let new_scenario = scenario.register_transaction(transaction);
-        scenario = new_scenario;
+        scenario_decode = scenario_decode.register_transaction(transaction);
+    }
+
+    let mut scenario_decoding_process = scenario!("DecodingProcessTransactions");
+
+    for url in TEST_URLS.iter() {
+        let closure: TransactionFunction = Arc::new(move |user| {
+            let url = url.clone() + "&with_html=1";
+            Box::pin(async move {
+                let goose = user.get(&url).await?;
+                let validate = &Validate::builder().status(200).build();
+                validate_and_load_static_assets(user, goose, &validate).await?;
+                Ok(())
+            })
+        });
+        let transaction = Transaction::new(closure);
+        scenario_decoding_process = scenario_decoding_process.register_transaction(transaction);
     }
 
     GooseAttack::initialize()?
-        .register_scenario(scenario)
+        .register_scenario(scenario_decode)
+        .register_scenario(scenario_decoding_process)
         .execute()
         .await?;
 
