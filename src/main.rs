@@ -7,6 +7,7 @@ use lazy_static::lazy_static;
 use mwpf::mwpf_solver::{SolverSerialJointSingleHair, SolverTrait};
 use mwpf::util::*;
 use mwpf::visualize::*;
+use num_traits::One;
 use num_traits::cast::ToPrimitive;
 use serde::Deserialize;
 use serde_json::json;
@@ -96,7 +97,7 @@ pub async fn decode(req: HttpRequest, query: web::Query<DecodeParams>) -> Result
         .connection_info()
         .realip_remote_addr()
         .map(|ip| ip.to_string());
-    log::info!(
+    log::error!(
         "Decode request from {:?}: code_id={}, syndrome={}, with_json={}, with_html={}, cluster_node_limit={}",
         remote_ip,
         query.code_id,
@@ -138,6 +139,16 @@ pub async fn decode(req: HttpRequest, query: web::Query<DecodeParams>) -> Result
         );
     }
 
+    if decoded.weight_range.lower + Rational::one() <= decoded.weight_range.upper {
+        log::info!(
+            "Suboptimal decoding result from {:?}: code_id={}, syndrome={}, cluster_node_limit={}",
+            remote_ip,
+            query.code_id,
+            query.syndrome,
+            query.cluster_node_limit,
+        );
+    }
+
     Ok(web::Json(result))
 }
 
@@ -152,12 +163,10 @@ pub async fn decoding_process(
         .realip_remote_addr()
         .map(|ip| ip.to_string());
     log::info!(
-        "Decode request from {:?}: code_id={}, syndrome={}, with_json={}, with_html={}, cluster_node_limit={}",
+        "Decoding process request from {:?}: code_id={}, syndrome={}, cluster_node_limit={}",
         remote_ip,
         query.code_id,
         query.syndrome,
-        query.with_json.is_some(),
-        query.with_html.is_some(),
         query.cluster_node_limit,
     );
 
