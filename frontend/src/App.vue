@@ -386,26 +386,7 @@ const is_logical_error = computed(() => {
   return false
 })
 
-const showDecodingProcess = ref(false)
-function viewDecodingProcess() {
-  showDecodingProcess.value = true
-}
-
 async function decodeShowHTML() {
-  // showDecodingProcess.value = false
-  // const decoded = await decode(true)
-  // if (decoded?.html != null) {
-  //   // I tried to open a new tab but it doesn't work somehow
-  //   const blob = new Blob([decoded.html], { type: 'text/html' })
-  //   const url = URL.createObjectURL(blob)
-  //   const link = document.createElement('a')
-  //   link.href = url
-  //   link.download = 'decoding-process.html'
-  //   document.body.appendChild(link)
-  //   link.click()
-  //   document.body.removeChild(link)
-  //   URL.revokeObjectURL(url)
-  // }
   const syndromeString = Array.from(syndrome.value).join(',')
   const url = `/api/decoding-process?code_id=${code.value.id}&syndrome=${syndromeString}`
   window.open(url, '_blank')?.focus()
@@ -627,7 +608,7 @@ async function decodeShowHTML() {
             >Rigorously proven: {{ code.decoded.lower }} ≤ weight(MWPF) ≤ {{ code.decoded.upper }}
           </span>
           <span v-if="code.decoded.upper != 0">
-            (<a href="" @click.prevent="viewDecodingProcess">view decoding process</a>)</span
+            (<a href="" @click.prevent="decodeShowHTML">view decoding process</a>)</span
           >
         </p>
 
@@ -709,72 +690,6 @@ async function decodeShowHTML() {
       >
         <img src="./assets/pypi.png" alt="PyPI" class="python-icon" />
       </a>
-
-      <!-- Decoding process overlay -->
-      <div
-        v-if="showDecodingProcess"
-        style="
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background-color: rgba(0, 0, 0, 0.3);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 100;
-        "
-      >
-        <div
-          style="
-            background-color: white;
-            padding: calc(3 * var(--hs));
-            border-radius: calc(2 * var(--hs));
-            text-align: center;
-            max-width: 80%;
-          "
-        >
-          <p style="font-size: calc(2.5 * var(--hs)); margin-bottom: calc(2 * var(--hs))">
-            <!-- For best experience, please use a desktop browser and open the downloaded HTML -->
-            For best experience, please use landscape mode or use a desktop browser.
-          </p>
-          <img
-            style="width: 100%; height: auto; margin-bottom: calc(2 * var(--hs))"
-            src="/public/decoding-process.jpg"
-            alt="Decoding Process"
-          />
-          <button
-            style="
-              padding: calc(2 * var(--hs)) calc(2 * var(--hs));
-              font-size: calc(2 * var(--hs));
-              background-color: grey;
-              color: white;
-              border: none;
-              border-radius: calc(1.5 * var(--hs));
-              cursor: pointer;
-            "
-            @click="showDecodingProcess = false"
-          >
-            Close
-          </button>
-          <button
-            style="
-              margin-left: calc(2 * var(--hs));
-              padding: calc(2 * var(--hs)) calc(2 * var(--hs));
-              font-size: calc(2 * var(--hs));
-              background-color: #007bff;
-              color: white;
-              border: none;
-              border-radius: calc(1.5 * var(--hs));
-              cursor: pointer;
-            "
-            @click="decodeShowHTML()"
-          >
-            Decode (step-by-step)
-          </button>
-        </div>
-      </div>
 
       <div
         v-if="decoderServerDown"
